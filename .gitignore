@@ -1,0 +1,15 @@
+
+combined_plot.png
+energy_plot.png
+flux_plot.png
+planet_positions.npy
+planet_positions.npz
+radial_velocity_plot.png
+zoomed_orbit_plot.png
+planet_positions.npz
+planet_positions.npz
+kepler_newton_deviations.png
+planet_positions.npz
+*.npz
+*.png
+*.xml

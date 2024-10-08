@@ -1,0 +1,21 @@
+PS C:\Users\JohnDoe\Documents\TopSecretNasaProject
+The biggest relative deviation was for planet 0, which drifted 0.00251174 % from its actual position.
+Your planet trajectories were satisfyingly calculated. Well done!
+*** Achievement unlocked: Well-behaved planets! ***
+Generating orbit video with 628 frames.
+Note that planet/moon rotations and moon velocities are adjusted for smooth animation.
+XML file orbit_video.xml was saved in XMLs/.
+It can be viewed in SSView.
+Planet 1 completed an orbit in 3.07 years.
+Planet 2 completed an orbit in 4.83 years.
+Planet 3 completed an orbit in 57.21 years.
+Planet 4 completed an orbit in 26.84 years.
+Planet 5 completed an orbit in 83.84 years.
+Planet 6 completed an orbit in 9.54 years.
+Planet 7 completed an orbit in 15.37 years.
+Area at aphelion 0.008134679759137637
+Area at perihelion  0.008134679759141053
+Distance traveled near aphelion: 0.00573375688759474 AU
+Distance traveled near perihelion: 0.005745466197891815 AU
+Mean velocity near aphelion: 5.7337568875947404 AU/yr
+Mean velocity near perihelion: 5.745466197891815 AU/yr
