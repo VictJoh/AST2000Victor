@@ -30,6 +30,8 @@ plt.rcParams['axes.formatter.use_mathtext'] = False
 mpl.rcParams['axes.grid'] = True 
 mpl.rcParams['grid.alpha'] = 0.3
 plt.style.use('grayscale')
+colors = ['b', 'm', 'c', 'y', 'g', 'orange', 'purple']
+
 
 seed = 4042
 system = SolarSystem(seed)
@@ -427,6 +429,8 @@ class RocketSolarSystem:
         return rocket_positions
 
     def run(self):
+        """Runs the run_simulation, but inputs the class-
+        variables so we can use numba"""
         self.rocket_positions = self.run_simulation(
             self.rocket_pos, self.rocket_v, self.rocket_positions,
             self.N, self.dt, self.G, self.star_mass)
@@ -439,16 +443,15 @@ class RocketSolarSystem:
         for i in range(self.system.number_of_planets):
             x = self.positions_over_time[self.idx_launch:idx_end, i, 0]
             y = self.positions_over_time[self.idx_launch:idx_end, i, 1]
-            plt.plot(x, y, alpha=0.8)
-
-        plt.plot(0, 0, label="Numerical Orbits", alpha=0.8)
+            planet_name = f"Planet {i+1}"
+            plt.plot(x, y, alpha=0.8, label=planet_name, color = colors[i])
 
         star_color = np.array(self.system.star_color) / 255
         plt.plot(0, 0, "o", color=star_color, label='Star', markersize=10)
 
         rocket_x = self.rocket_positions[:, 0] / constants.AU
         rocket_y = self.rocket_positions[:, 1] / constants.AU
-        plt.plot(rocket_x, rocket_y, 'r-', label="Rocket Path")
+        plt.plot(rocket_x, rocket_y, 'r-', label="Rocket")
         plt.xlim(-30, 30)
         plt.ylim(-30, 30)
         plt.autoscale(False) 

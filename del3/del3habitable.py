@@ -28,6 +28,7 @@ plt.rcParams['axes.formatter.use_mathtext'] = False
 mpl.rcParams['axes.grid'] = True 
 mpl.rcParams['grid.alpha'] = 0.3
 plt.style.use('grayscale')
+colors = ['b', 'm', 'c', 'y', 'g', 'orange', 'purple']
 
 
 seed = 4042
@@ -64,7 +65,7 @@ def habitable_zone(L_star):
 
 positions_over_time = np.load('planet_positions.npz')['positions_over_time']
 
-def plot_combined(positions_over_time):
+def plot_combined(positions_over_time, colors):
     """
     Plots the numerical and analytical orbits of the planets, along with the habitable zone.
 
@@ -78,7 +79,8 @@ def plot_combined(positions_over_time):
     for i in range(system.number_of_planets):
         x = positions_over_time[:, i, 0]  # takes all time steps of planet i at coordinate 0 (x-axis)
         y = positions_over_time[:, i, 1]  # takes all time steps of planet i at coordinate 1 (y-axis)
-        plt.plot(x, y, alpha=0.8)
+        planet_name = f"Planet {i+1}"
+        plt.plot(x, y, alpha=0.8, color = colors[i], label=planet_name,)
 
     # Habitable Zone
     inner, outer = habitable_zone(L_star)
@@ -89,11 +91,9 @@ def plot_combined(positions_over_time):
     outer_x = outer * np.cos(theta)
     outer_y = outer * np.sin(theta)
 
-    plt.fill(outer_x, outer_y, 'green', alpha=0.2, label="Habitable Zone")
+    plt.fill(outer_x, outer_y, 'green', alpha=0.6, label="Habitable Zone")
     plt.fill(inner_x, inner_y, 'white', alpha=1.0)  
 
-
-    plt.plot(0, 0, label="Numerical Orbits", alpha=0.8) 
     
     star_color = np.array(system.star_color) / 255
     plt.scatter(0, 0, color=star_color, label='Star', s=100, zorder=5)
@@ -112,5 +112,5 @@ temps = calculate_planet_temps()
 print(f"Temperatures: {temps}")
 print(f"Habitable planets: {habitable_planets(temps)}")
 print(f"Habitable zone: {habitable_zone(L_star)}")
-plot_combined(positions_over_time)
+plot_combined(positions_over_time, colors)
 plt.show()
