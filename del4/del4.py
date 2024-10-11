@@ -75,6 +75,36 @@ def find_phi(input_image, image_path, num_images=360):
             best_phi = i
     return best_phi
 
+def calculate_radial_vel():
+    lambda0 = 656.3e-9 # observed wavelength
+    doppler1, doppler2 = mission.star_doppler_shifts_at_sun  # [nm]
+    doppler1 *= 1e-9 # [m]
+    doppler2 *= 1e-9 # [m]
+    v1 = constants.c * (doppler1/lambda0)
+    v2= constants.c  * (doppler2/lambda0)
+    return v1, v2
+
+def calculate_spacecraft_vel(vstar1, vstar2, d_lambda1 = 0, d_lambda2 = 0):
+    lambda0 = 656.3e-9 # observed wavelength
+    phi1, phi2 = mission.star_direction_angles
+    v_measured1 = constants.c * (d_lambda1 / lambda0)
+    v_measured2 = constants.c * (d_lambda2 / lambda0)
+
+    A = np.array([
+        [np.cos(phi1), np.sin(phi1)],
+        [np.cos(phi2), np.sin(phi2)]
+    ])
+    
+
+    b = np.array([
+        vstar1 - v_measured1,
+        vstar2 - v_measured2
+    ])
+    vx, vy = np.linalg.solve(A, b)
+    return vx, vy
+
+def test_spacecraft_vel()
+
 def main():
     required_files = ['planet_positions.npz', 'planet_velocities.npz', 'himmelkule.npy', 'sample0000.png']
     if all(os.path.exists(file) for file in required_files):
@@ -86,7 +116,6 @@ def main():
     else:
         print("files are missing")
         quit()
-
 
     pixels = np.array(img) # png into numpy array
     height = len(pixels[:, 0])
@@ -120,8 +149,13 @@ def main():
     input_img = 'C:/Users/victo/Documents/GitHub/AST2000-Project/del4/pictures/himmelkule_image100.png'
     phi_new = find_phi(input_img, image_path)
     print(f"centered at {phi_new} deg")
-    print("finished running")
 
+    vstar1, vstar2 = calculate_radial_vel()
+    vx, vy = calculate_spacecraft_vel(vstar1, vstar2)
+    print(vx, vy)
+
+    print("finished running")
+    
 
 if __name__ == "__main__":
     main()
