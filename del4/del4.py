@@ -1,3 +1,5 @@
+"""I have written this code without the use of the skeleton-code"""
+
 from PIL import Image
 import ast2000tools.utils as utils
 from ast2000tools.solar_system import SolarSystem
@@ -32,53 +34,46 @@ colors = ['b', 'm', 'c', 'y', 'g', 'orange', 'purple']
 
 seed = 4042
 system = SolarSystem(seed)
+mission = SpaceMission(seed)
 
 
+def inverse_stereographical_projection(rX, rY, phi0, theta0 = np.pi/2):
+    rho = np.sqrt(rX**2 + rY**2)
+    beta = 2 * np.arctan2(rho, 2)
 
+    theta = np.pi/2 -np.arcsin(np.cos(beta) * np.cos(theta0) + (rY * np.sin(beta) * np.sin(theta0) / rho))
+    phi = phi0 + np.arctan2(rX * np.sin(beta), rho * np.sin(theta0) * np.cos(beta) - rY * np.cos(theta0) * np.sin(beta))
 
-
-def inverse_stereographical_projection(rX, rY):
-    D = rX**2 + rY**2 + 1
-
-    x = (2*rX) / D
-    y = (2*rY) / D
-    z = (D-2) / D
-    return x, y, z
-
-def cartesian_to_spherical(x, y, z):
-    theta = np.mod(np.arccos(z), 2*np.pi) # polar in [0,2pi]
-    phi = np.arctan2(y,x) # azimuth
-
+    # make them continous on the correct domain
+    theta = np.mod(theta, np.pi)
+    phi = np.mod(phi, np.pi * 2)
     return theta, phi
-
-def map_to_pixel(theta, phi, pixels):
-    height = len(pixels[:, 0])
-    width = len(pixels[0, :])
-    # make angles range from [0,1]
-    theta_01 = theta_norm = theta / np.pi  
-    phi_01 = phi_norm = phi / (2 * np.pi)  
-
-    row = (1 - theta_norm) * (height - 1)  
-    col = phi_norm * (width - 1)
-    
-    return row, col
 
 
 def construct_image(himmelkule, pixels, theta, phi):
     height = len(pixels[:, 0])
     width = len(pixels[0, :])
-    row, col = map_to_pixel(theta, phi, pixels)
 
-    image = np.zeros_like(pixels)
-    for _,_,r,g,b in himmelkule()
+    rgb_list = np.zeros((height, width, 3), dtype=np.uint8)
+    
+    for i in range(height):
+        for j in range(width):
+            pixel_idx = mission.get_sky_image_pixel(theta[i, j], phi[i, j])
+            rgb_list[i, j] = himmelkule[pixel_idx][2:]
+    return rgb_list
 
-        for i in range(height):
-            for j in range(width):
-                row = int(
+def find_phi(input_image, image_path, num_images=360):
+    img = np.array(Image.open(input_image))
+    min_diff = np.inf
+    best_phi = None
+    for i in range(num_images):
+        ref_img = np.array(Image.open(f"{image_path}/himmelkule_image{i}.png"))
+        diff = np.sum((img - ref_img) ** 2) # sums up all differences in rgb values and squares it
 
-    return image
-
-
+        if diff < min_diff:
+            min_diff = diff
+            best_phi = i
+    return best_phi
 
 def main():
     required_files = ['planet_positions.npz', 'planet_velocities.npz', 'himmelkule.npy', 'sample0000.png']
@@ -93,26 +88,38 @@ def main():
         quit()
 
 
-    img = Image.open("sample0000.png") # Open existing png
     pixels = np.array(img) # png into numpy array
     height = len(pixels[:, 0])
     width = len(pixels[0, :])
 
+    fov_phi = 70 * (np.pi / 180)  
+    fov_theta = fov_phi  
 
-    X = np.linspace(-1, 1, width)
-    Y = np.linspace(-1,1, height)
+    X_lim = 2 * np.sin(fov_phi / 2) / (1 + np.cos(fov_phi / 2))
+    Y_lim = 2 * np.sin(fov_theta / 2) / (1 + np.cos(fov_theta / 2))
 
+    X = np.linspace(-X_lim, X_lim, width)
+    Y = np.linspace(-Y_lim, Y_lim, height)
     rX, rY = np.meshgrid(X, Y)
-    x, y, z = inverse_stereographical_projection(rX, rY)
-    theta, phi = cartesian_to_spherical(x, y, z)
+    phi0 = 0
+    theta, phi = inverse_stereographical_projection(rX, rY, phi0)
 
-    image = construct_image(himmelkule, pixels, theta, phi)
-    actual_image = Image.fromarray(image)
-    actual_image.save('himmelkule_image.png')
+    # image = construct_image(himmelkule, pixels, theta, phi)
+    # actual_image = Image.fromarray(image)
+    # actual_image.save(f'C:/Users/victo/Documents/GitHub/AST2000-Project/del4/pictures/himmelkule_image{0}.png')
 
-    polar_angle = 0
-    azimuth_angle = 0
-    SpaceMission.get_sky_image_pixel(polar_angle,azimuth_angle)
+    # for i in range(360):
+    #     phi0 = i * (np.pi / 180) 
+    #     theta, phi = inverse_stereographical_projection(rX, rY, phi0)
+        
+    #     image = construct_image(himmelkule, pixels, theta, phi)
+    #     actual_image = Image.fromarray(image)
+    #     actual_image.save(f'C:/Users/victo/Documents/GitHub/AST2000-Project/del4/pictures/himmelkule_image{i}.png')
+
+    image_path = 'C:/Users/victo/Documents/GitHub/AST2000-Project/del4/pictures'
+    input_img = 'C:/Users/victo/Documents/GitHub/AST2000-Project/del4/pictures/himmelkule_image100.png'
+    phi_new = find_phi(input_img, image_path)
+    print(f"centered at {phi_new} deg")
     print("finished running")
 
 
