@@ -13,30 +13,32 @@ import time
 import os
 
 import matplotlib as mpl # https://pythonforthelab.com/blog/python-tip-ready-publish-matplotlib-figures/ inspiration from this
-mpl.rcParams['font.size'] = 16
-mpl.rcParams['font.family'] = 'serif'
-mpl.rcParams['axes.titlesize'] = 20
-mpl.rcParams['axes.labelsize'] = 20
-mpl.rcParams['xtick.labelsize'] = 12
-mpl.rcParams['ytick.labelsize'] = 12
-mpl.rcParams['legend.fontsize'] = 15
-mpl.rcParams['figure.figsize'] = (10, 6)
-mpl.rcParams['figure.dpi'] = 300
-mpl.rcParams['savefig.dpi'] = 300
-mpl.rcParams['savefig.format'] = 'png'  
-plt.rcParams['figure.autolayout'] = True
-plt.rcParams['axes.formatter.useoffset'] = False
-plt.rcParams['axes.formatter.use_mathtext'] = False
-mpl.rcParams['axes.grid'] = True 
-mpl.rcParams['grid.alpha'] = 0.3
-plt.style.use('grayscale')
-colors = ['b', 'm', 'c', 'y', 'g', 'orange', 'purple']
+mpl.rcParams["font.size"] = 16
+mpl.rcParams["font.family"] = "serif"
+mpl.rcParams["axes.titlesize"] = 20
+mpl.rcParams["axes.labelsize"] = 20
+mpl.rcParams["xtick.labelsize"] = 12
+mpl.rcParams["ytick.labelsize"] = 12
+mpl.rcParams["legend.fontsize"] = 15
+mpl.rcParams["figure.figsize"] = (10, 6)
+mpl.rcParams["figure.dpi"] = 300
+mpl.rcParams["savefig.dpi"] = 300
+mpl.rcParams["savefig.format"] = "png"  
+plt.rcParams["figure.autolayout"] = True
+plt.rcParams["axes.formatter.useoffset"] = False
+plt.rcParams["axes.formatter.use_mathtext"] = False
+mpl.rcParams["axes.grid"] = True 
+mpl.rcParams["grid.alpha"] = 0.3
+plt.style.use("grayscale")
+colors = ["b", "m", "c", "y", "g", "orange", "purple"]
 
 
 seed = 4042
 system = SolarSystem(seed)
 mission = SpaceMission(seed)
 
+
+file_path = "C:/Users/victo/Documents/GitHub/AST2000Victor"
 
 class RocketEngine:
     def __init__(self, seed, N, engine_simulation_time, dt, L, T):
@@ -79,7 +81,7 @@ class RocketEngine:
         """
         Adjusts the velocity of a particle when it hits a wall of the cube.
 
-        If the particle's position exceeds the boundaries, it resets the positions and reverses the direction.
+        If the particle"s position exceeds the boundaries, it resets the positions and reverses the direction.
         We assume perfect elasiticity
         
         Parameters:
@@ -175,24 +177,24 @@ class RocketEngine:
 
         plt.figure(figsize=(8, 6), dpi=240) # We set the size to 8,6 as this best fits in our latex-file and resolution to 240 as this looked good
 
-        plt.hist(all_v_norms.flatten(), bins=50, density=True, color='gray', label='Simulated Speeds') #Makes histogram with 50 blocks from our v_norms we use .flatten as we want it to be a 1D array
+        plt.hist(all_v_norms.flatten(), bins=50, density=True, color="gray", label="Simulated Speeds") #Makes histogram with 50 blocks from our v_norms we use .flatten as we want it to be a 1D array
 
-        plt.plot(speeds, mb_distribution, color='black', linewidth=2, linestyle='--', label='Maxwell-Boltzmann Distribution')
+        plt.plot(speeds, mb_distribution, color="black", linewidth=2, linestyle="--", label="Maxwell-Boltzmann Distribution")
 
-        plt.xlabel('Speed (m/s)', fontsize=14)
-        plt.ylabel('Probability Density', fontsize=14)
-        plt.title('Simulated Speeds vs Maxwell-Boltzmann Distribution', fontsize=18)
+        plt.xlabel("Speed (m/s)", fontsize=14)
+        plt.ylabel("Probability Density", fontsize=14)
+        plt.title("Simulated Speeds vs Maxwell-Boltzmann Distribution", fontsize=18)
 
-        plt.grid(True, color='gray', linestyle='--')
+        plt.grid(True, color="gray", linestyle="--")
 
         v_median = np.sqrt(2 * self.k * self.T / self.m) # the expected mean speed
-        plt.axvline(x=v_median, color='black', linestyle=':', linewidth=2) # makes a dotted line at the mean speed
-        plt.text(v_median, max(mb_distribution), 'Most Probable Speed', color='black', fontsize=12) # makes text at the dotted line
+        plt.axvline(x=v_median, color="black", linestyle=":", linewidth=2) # makes a dotted line at the mean speed
+        plt.text(v_median, max(mb_distribution), "Most Probable Speed", color="black", fontsize=12) # makes text at the dotted line
 
-        plt.legend(fontsize=12, loc='upper right')  
+        plt.legend(fontsize=12, loc="upper right")  
 
         plt.tight_layout() # makes it look better we think. To be honest we just learned to do this no matter what
-        plt.savefig('maxwell_boltzmann_comparison_grayscale.png', format='png', dpi=240)
+        plt.savefig("maxwell_boltzmann_comparison_grayscale.png", format="png", dpi=240)
         plt.show()
 
     def run_engine(self):
@@ -251,19 +253,20 @@ class Rocket:
         self.planet_radius = self.system.radii[planet_idx] * 1e3 # turns into m
         self.planet_rotation_period = self.system.rotational_periods[planet_idx] * constants.day
         
-        pos_data = np.load('planet_positions.npz')
-        self.positions_over_time = pos_data['positions_over_time']
-        self.times = pos_data['times']
+        pos_data = np.load(f"{file_path}/planet_positions.npz")
+        self.positions_over_time = pos_data["positions_over_time"]
+        self.times = pos_data["times"]
+        self.times_seconds = self.times * constants.yr 
 
         self.t_launch = t_launch
         self.t_launch_years = t_launch / constants.yr
-        self.idx_launch = np.argmin(np.abs(self.times - self.t_launch_years))
-
-        self.planet_pos = self.positions_over_time[self.idx_launch, planet_idx, :] * constants.AU  # [m/s]
+    
+        interpolated_positions_SI = self.interpolate(self.t_launch_years) * constants.AU
+        self.planet_pos = interpolated_positions_SI[planet_idx]
 
         total_angle = np.arctan2(self.planet_pos[1], self.planet_pos[0]) + angle_launch
         planet_surface_direction = np.array([np.cos(total_angle), np.sin(total_angle)])
-        self.rocket_pos = self.planet_pos + self.planet_radius * planet_surface_direction
+        self.rocket_pos = self.planet_pos + (self.planet_radius * planet_surface_direction)
 
         planet_rotation_speed = 2 * np.pi * self.planet_radius / self.planet_rotation_period 
         v_rot_direction = np.array([-planet_surface_direction[1], planet_surface_direction[0]]) 
@@ -276,6 +279,23 @@ class Rocket:
 
         self.m_rocket = self.fuel_mass + self.mission.spacecraft_mass
         np.random.seed(seed)
+
+    def interpolate(self, t):
+        idx = np.searchsorted(self.times, t)
+        if self.times[idx] >= t:
+            idx += -1
+        t0 = self.times[idx]
+        t1 = self.times[idx + 1]    
+        dt = t1-t0
+        
+        interpolated_pos = np.zeros((self.system.number_of_planets, 2))
+        interpolated_vel = np.zeros((self.system.number_of_planets, 2))
+        for i in range(self.system.number_of_planets):
+            pos0 = self.positions_over_time[idx, i]
+            pos1 = self.positions_over_time[idx + 1, i]
+
+            interpolated_pos[i] = pos0 + ((t - t0) / dt) * (pos1 - pos0)
+        return interpolated_pos
 
 
     def gravity(self, r_vec): 
@@ -376,7 +396,7 @@ class Rocket:
         return
 
 class RocketSolarSystem:
-    def __init__(self, seed, rocket, tot_sim_time, t_launch, planet_idx, launch_duration, dt):
+    def __init__(self, seed, rocket, tot_sim_time, t_launch, planet_idx, launch_duration):
         self.seed = seed
         self.system = SolarSystem(seed)
         self.mission = SpaceMission(seed)
@@ -384,15 +404,14 @@ class RocketSolarSystem:
         self.tot_sim_time = tot_sim_time
         self.launch_duration = launch_duration
         # Load planetary data
-        positions_data = np.load('planet_positions.npz')
-        v_data = np.load('planet_velocities.npz')
-        self.positions_over_time = positions_data['positions_over_time']
-        self.velocities_over_time = v_data['velocities_over_time']
-        self.times = positions_data['times']  # in years
+        positions_data = np.load(f"{file_path}/planet_positions.npz")
+        v_data = np.load(f"{file_path}/planet_velocities.npz")
+        self.positions_over_time = positions_data["positions_over_time"]
+        self.velocities_over_time = v_data["velocities_over_time"]
+        self.times = positions_data["times"]  # in years
         self.times_seconds = self.times * constants.yr  # in seconds
         self.N = len(self.times)
         self.rocket = rocket
-        self.dt = dt
 
         # Launch time
         self.t_launch = t_launch
@@ -406,8 +425,12 @@ class RocketSolarSystem:
         self.dt = self.times_seconds[1] - self.times_seconds[0]
 
         # Initial rocket position and velocity
-        rocket_pos_SI = rocket.rocket_pos + self.velocities_over_time_SI[self.idx_launch][planet_idx] * 597.059
-        rocket_v_SI = rocket.rocket_v + self.velocities_over_time_SI[self.idx_launch][planet_idx]
+        self.interpolated_positions_SI, self.interpolated_velocities_SI = self.interpolate(self.t_launch_years)
+        self.interpolated_positions_SI *= constants.AU          
+        self.interpolated_velocities_SI *= (constants.AU / constants.yr)
+        
+        rocket_pos_SI = rocket.rocket_pos + self.interpolated_velocities_SI[planet_idx] * self.launch_duration 
+        rocket_v_SI = rocket.rocket_v + self.interpolated_velocities_SI[planet_idx]
 
         self.rocket_pos = rocket_pos_SI
         self.rocket_v = rocket_v_SI
@@ -418,7 +441,7 @@ class RocketSolarSystem:
         self.star_mass = self.system.star_mass * constants.m_sun
 
     def interpolate(self, t):
-        idx = np.searchsorted(self.times_seconds, t) - 1
+        idx = np.searchsorted(self.times_seconds, t)
         if self.times_seconds[idx] >= t:
             idx += -1
         t0 = self.times_seconds[idx]
@@ -426,34 +449,68 @@ class RocketSolarSystem:
         dt = t1-t0
         
         interpolated_pos = np.zeros((self.system.number_of_planets, 2))
-        for i in range(self.system.number_of_planets)
-            pos0 = self.positions_over_time_SI[idx, i]
-            pos1 = self.positions_over_time_SI[idx + 1, i]
+        interpolated_vel = np.zeros((self.system.number_of_planets, 2))
+        for i in range(self.system.number_of_planets):
+            pos0 = self.positions_over_time[idx, i]
+            pos1 = self.positions_over_time[idx + 1, i]
+            vel0 = self.velocities_over_time[idx, i]
+            vel1 = self.velocities_over_time[idx + 1, i]
+
             interpolated_pos[i] = pos0 + ((t - t0) / dt) * (pos1 - pos0)
-        return interpolated_pos
+            interpolated_vel[i] = vel0 + ((t - t0) / dt) * (vel1 - vel0)
+        return interpolated_pos, interpolated_vel
 
-    @staticmethod
-    @njit
-    def run_simulation(rocket_pos, rocket_v, rocket_positions, N, dt, G, star_mass):
+    def acceleration(self, rocket_pos, planet_positions, planet_masses, star_mass):
         """
-        """
-        for i in range(1, N):
-            r_vec = rocket_pos
-            r_norm = np.sqrt(r_vec[0]**2 + r_vec[1]**2)
-            a_g = -(G * star_mass / r_norm**3) * r_vec
-            
-            rocket_v += a_g * dt
-            rocket_pos += rocket_v * dt
-            rocket_positions[i] = rocket_pos
-        return rocket_positions
+        Calculates the gravitational acceleration on the rocket from all planets (+sun)
 
+        Parameters:
+        rocket_pos (array): Position of the rocket [m] (x,y)
+        planet_positions (array): Positions of the planets [m] (x,y)
+        planet_masses (array): Masses of the planets [kg]
+        star_mass (float): Mass of the star [kg]
+        Returns:
+        a_total (array): Total gravitational acceleration on the rocket [m/s²]
+        """
+        r_star = rocket_pos - np.array([0.0, 0.0])
+        r_star_norm = np.linalg.norm(r_star)
+        a_star = -self.G * star_mass * r_star / r_star_norm**3
+
+        a_planets = np.array([0.0, 0.0])
+        for i in range(self.system.number_of_planets):
+            r_planet = rocket_pos - planet_positions[i]
+            r_planet_norm = np.linalg.norm(r_planet)
+            a_planet = -self.G * planet_masses[i] * r_planet / r_planet_norm**3
+            a_planets += a_planet
+        a = a_star + a_planets
+        return a
+    
     def run(self):
-        """Runs the run_simulation, but inputs the class-
-        variables so we can use numba"""
-        self.rocket_positions = self.run_simulation(
-            self.rocket_pos, self.rocket_v, self.rocket_positions,
-            self.N, self.dt, self.G, self.star_mass)
-        return self.rocket_positions
+        """
+        """
+        rocket_positions = np.zeros((self.N, 2))
+        rocket_velocities = np.zeros((self.N, 2))
+
+        rocket_positions[0] = self.rocket_pos
+        rocket_velocities[0] = self.rocket_v
+
+        planet_masses = self.system.masses * constants.m_sun
+
+        planet_positions = self.positions_over_time_SI[0]
+        a_i = self.acceleration(rocket_positions[0], planet_positions, planet_masses, self.star_mass)
+
+        for i in range(self.N - 1):
+            rocket_positions[i + 1] = rocket_positions[i] + rocket_velocities[i] * self.dt + 0.5 * a_i * self.dt ** 2
+            planet_pos_iplus1 = self.positions_over_time_SI[i + 1]
+
+            a_iplus1 = self.acceleration(rocket_positions[i + 1], planet_pos_iplus1, planet_masses, self.star_mass)
+            rocket_velocities[i + 1] = rocket_velocities[i] + 0.5 * (a_i + a_iplus1) * self.dt
+            
+            a_i = a_iplus1
+
+        self.rocket_positions = rocket_positions
+        self.rocket_velocities = rocket_velocities
+        return rocket_positions
 
     def plot_combined(self):
         t_end = (self.t_launch_years + (self.tot_sim_time / constants.yr))
@@ -466,23 +523,23 @@ class RocketSolarSystem:
             plt.plot(x, y, alpha=0.8, label=planet_name, color = colors[i])
 
         star_color = np.array(self.system.star_color) / 255
-        plt.plot(0, 0, "o", color=star_color, label='Star', markersize=10)
+        plt.plot(0, 0, "o", color=star_color, label="Star", markersize=10)
 
         rocket_x = self.rocket_positions[:, 0] / constants.AU
         rocket_y = self.rocket_positions[:, 1] / constants.AU
-        plt.plot(rocket_x, rocket_y, 'r-', label="Rocket")
+        plt.plot(rocket_x, rocket_y, "r-", label="Rocket")
         plt.xlim(-30, 30)
         plt.ylim(-30, 30)
         plt.autoscale(False) 
-        plt.xlabel('x (AU)')
-        plt.ylabel('y (AU)')
-        plt.title('Rocket Orbit inside Solar System over 3 years')
-        plt.axis('equal')
+        plt.xlabel("x (AU)")
+        plt.ylabel("y (AU)")
+        plt.title("Rocket Orbit inside Solar System over 3 years")
+        plt.axis("equal")
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
 
-        plt.savefig('rocket_and_planets.png')
+        plt.savefig("rocket_and_planets.png")
         plt.show()
 
         
