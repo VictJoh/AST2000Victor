@@ -77,11 +77,11 @@ def find_phi(input_image, image_path, num_images=360):
 
 def calculate_radial_vel():
     lambda0 = 656.3e-9 # observed wavelength
-    doppler1, doppler2 = mission.star_doppler_shifts_at_sun  # [nm]
+    doppler1, doppler2 = mission.star_doppler_shift_at_sun  # [nm]
     doppler1 *= 1e-9 # [m]
     doppler2 *= 1e-9 # [m]
     v1 = constants.c * (doppler1/lambda0)
-    v2= constants.c  * (doppler2/lambda0)
+    v2 = constants.c  * (doppler2/lambda0)
     return v1, v2
 
 def calculate_spacecraft_vel(vstar1, vstar2, d_lambda1 = 0, d_lambda2 = 0):
@@ -103,7 +103,41 @@ def calculate_spacecraft_vel(vstar1, vstar2, d_lambda1 = 0, d_lambda2 = 0):
     vx, vy = np.linalg.solve(A, b)
     return vx, vy
 
-def test_spacecraft_vel()
+def test_spacecraft_vel(v_rocket, vstar1, vstar2, d_lambda1, d_lambda2):
+    vx, vy = v_rocket
+
+    d_lambda1 = 0
+    d_lambda2 = 0
+
+    vx_approx, vy_approx = calculate_spacecraft_vel(vstar1, vstar2, d_lambda1, d_lambda2)    
+
+    tolerance = 1e-6
+    assert abs(vx_approx - vx) < tolerance, f"vx deviated by {vx_approx - vx}"
+    assert abs(vy_approx - vy) < tolerance, f"vy deviated by {vy_approx - vy}"
+
+    print("measured velocities are as expected")
+    return  
+
+
+def trilaterate(distances, positions):
+    x_sun, y_sun = 0, 0
+    d_sun = distances[-1]
+
+    A = np.zeros((len(distances) -1, 2))
+    b = np.zeros(len(distances)-1)
+
+    for i in range(len(distances)-1):
+        x, y = positions[i]
+        d = distances[i]
+        k = x**2 + y**2
+
+        A[i, 0] = 2 * (x - x_sun)
+        A[i, 1] = 2 * (y - y_sun)
+
+        b[i] = -d**2 + k 
+        position = np.linalg.least_squares(A, b, rcond=None)[0]
+    return position
+
 
 def main():
     required_files = ['planet_positions.npz', 'planet_velocities.npz', 'himmelkule.npy', 'sample0000.png']
@@ -146,16 +180,21 @@ def main():
     #     actual_image.save(f'C:/Users/victo/Documents/GitHub/AST2000-Project/del4/pictures/himmelkule_image{i}.png')
 
     image_path = 'C:/Users/victo/Documents/GitHub/AST2000-Project/del4/pictures'
-    input_img = 'C:/Users/victo/Documents/GitHub/AST2000-Project/del4/pictures/himmelkule_image100.png'
+    input_img = 'C:/Users/victo/Documents/GitHub/AST2000-Project/sample0200.png'
     phi_new = find_phi(input_img, image_path)
-    print(f"centered at {phi_new} deg")
+    print(f"sample0200 centered at around {phi_new} deg")
 
     vstar1, vstar2 = calculate_radial_vel()
     vx, vy = calculate_spacecraft_vel(vstar1, vstar2)
     print(vx, vy)
+    # test_spacecraft_vel(v_rocket, vstar1, vstar2, d_lambda1, d_lambda2)
+
+    launch_time = 597.06 / constants.yr
+    time_idx = int(launch_time//1e-5) # launch time from part 1
+    planet_positions = positions_over_time[time_idx]
+    distances = mission.measure_distances()
+    print(trilaterate(planet_positions, distances))
 
     print("finished running")
-    
-
 if __name__ == "__main__":
     main()
