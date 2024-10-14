@@ -174,7 +174,7 @@ def gen_positions(T, dt, initial_positions, initial_velocities, G, star_mass, nu
     times = np.linspace(0,T,N)
     np.savez_compressed('planet_positions.npz', positions_over_time=positions_over_time, times = times)
     np.savez_compressed('planet_velocities.npz', velocities_over_time=velocities_over_time)
-    return positions_over_time
+    return positions_over_time, velocities_over_time
 
 def calculate_orbital_periods(positions_over_time, dt, num_of_planets):
     """
@@ -823,17 +823,17 @@ def plot_all_orbits(positions_star, positions_planets):
 def main():
     """First part"""
     T = 100  
-    dt = 1e-5  
+    dt = 1e-5
     N = int (T//dt)
-    t_list = np.linspace(0,100,N)
+    t_list = np.linspace(0,T,N)
     num_of_planets = system.number_of_planets
     G = constants.G_sol
-    initial_positions = system.initial_positions
-    initial_velocities = system.initial_velocities
+    initial_positions = system.initial_positions.copy().T
+    initial_velocities = system.initial_velocities.copy().T
 
-    positions_over_time, velocities_over_time = gen_positions(
-            T, dt, initial_positions, initial_velocities, G, star_mass, num_of_planets
-        )
+    # positions_over_time, velocities_over_time = gen_positions(
+    #         T, dt, initial_positions, initial_velocities, G, star_mass, num_of_planets
+    #     )
     if os.path.exists('planet_positions.npz') and os.path.exists('planet_velocities.npz'):
         positions_over_time = np.load('planet_positions.npz')['positions_over_time']
         velocities_over_time = np.load('planet_velocities.npz')['velocities_over_time']
