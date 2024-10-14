@@ -403,6 +403,7 @@ class RocketSolarSystem:
         self.G = constants.G
         self.tot_sim_time = tot_sim_time
         self.launch_duration = launch_duration
+
         # Load planetary data
         positions_data = np.load(f"{file_path}/planet_positions.npz")
         v_data = np.load(f"{file_path}/planet_velocities.npz")
@@ -414,6 +415,7 @@ class RocketSolarSystem:
         self.rocket = rocket
 
         # Launch time
+        self.dt = self.times_seconds[1] - self.times_seconds[0]
         self.t_launch = t_launch
         self.t_launch_years = t_launch / constants.yr
         self.idx_launch = np.argmin(np.abs(self.times - self.t_launch_years))
@@ -422,13 +424,22 @@ class RocketSolarSystem:
         self.positions_over_time_SI = self.positions_over_time * constants.AU
         self.velocities_over_time_SI = self.velocities_over_time * (constants.AU / constants.yr)
 
-        self.dt = self.times_seconds[1] - self.times_seconds[0]
+
 
         # Initial rocket position and velocity
-        self.interpolated_positions_SI, self.interpolated_velocities_SI = self.interpolate(self.t_launch_years)
-        self.interpolated_positions_SI *= constants.AU          
-        self.interpolated_velocities_SI *= (constants.AU / constants.yr)
-        
+        self.positions_over_time_SI = self.positions_over_time * constants.AU
+        self.velocities_over_time_SI = self.velocities_over_time * (constants.AU / constants.yr)
+
+        idx_end = self.idx_launch + int(tot_sim_time / self.dt)
+        self.positions_over_time_SI = self.positions_over_time_SI[self.idx_launch:idx_end]
+        self.velocities_over_time_SI = self.velocities_over_time_SI[self.idx_launch:idx_end]
+        self.times_seconds = self.times_seconds[self.idx_launch:idx_end]
+        self.times = self.times[self.idx_launch:idx_end]
+
+        self.N = len(self.times)
+
+        self.interpolated_positions_SI = self.interpolate(self.t_launch_years)
+        self.interpolated_velocities_SI = self.interpolate(self.t_launch_years)[planet_idx] * (constants.AU / constants.yr)
         rocket_pos_SI = rocket.rocket_pos + self.interpolated_velocities_SI[planet_idx] * self.launch_duration 
         rocket_v_SI = rocket.rocket_v + self.interpolated_velocities_SI[planet_idx]
 
@@ -439,6 +450,7 @@ class RocketSolarSystem:
         self.rocket_positions[0] = self.rocket_pos
 
         self.star_mass = self.system.star_mass * constants.m_sun
+        self.energies = []
 
     def interpolate(self, t):
         idx = np.searchsorted(self.times_seconds, t)
@@ -484,6 +496,23 @@ class RocketSolarSystem:
             a_planets += a_planet
         a = a_star + a_planets
         return a
+
+
+    def U(self, rocket_pos, planet_pos):
+        r_star = np.linalg.norm(rocket_pos)
+        U_star = -self.G * self.star_mass * self.rocket.m_rocket / r_star
+        U_planets = 0.0
+        for i in range(self.system.number_of_planets):
+            r_vec = rocket_pos - planet_pos[i]
+            distance = np.linalg.norm(r_vec)
+            U_planets += -self.G * self.system.masses[i] * constants.m_sun * self.rocket.m_rocket / distance
+        U = U_star + U_planets
+        return U 
+
+    def T(self, rocket_vel):
+        T = 0.5 * self.rocket.m_rocket * np.linalg.norm(rocket_vel) ** 2
+        return T
+
     
     def run(self):
         """
@@ -505,12 +534,16 @@ class RocketSolarSystem:
 
             a_iplus1 = self.acceleration(rocket_positions[i + 1], planet_pos_iplus1, planet_masses, self.star_mass)
             rocket_velocities[i + 1] = rocket_velocities[i] + 0.5 * (a_i + a_iplus1) * self.dt
-            
+            if (i+1) % 100 == 0:
+                U = self.U(rocket_positions[i + 1], planet_pos_iplus1)
+                T = self.T(rocket_velocities[i + 1])
+                total_energy = U + T
+                self.energies.append(total_energy)
             a_i = a_iplus1
 
         self.rocket_positions = rocket_positions
         self.rocket_velocities = rocket_velocities
-        return rocket_positions
+        return rocket_positions, rocket_velocities
 
     def plot_combined(self):
         t_end = (self.t_launch_years + (self.tot_sim_time / constants.yr))
@@ -542,6 +575,27 @@ class RocketSolarSystem:
         plt.savefig("rocket_and_planets.png")
         plt.show()
 
+    def plot_energy(self):
+        """
+        Plots the deviation of the system's energy from the mean
+        """
+        plt.figure()
+        energy = np.array(self.energies) / 1000  # into kJ
+        mean_energy = np.mean(energy)
+        delta_energy = energy - mean_energy
+        energy_dt = self.dt * 100
+        times_energies = np.arange(len(energy)) * energy_dt / constants.yr
+
+
+        plt.plot(times_energies, delta_energy, label=f"Deviation of energy from the mean: {mean_energy:.2f} kJ", alpha=0.6)
+        plt.xlabel("Time (years)")
+        plt.ylabel(f"Energy (kJ)")
+        plt.ylim(min(delta_energy)*1.8, max(delta_energy)*1.8)
+        plt.title("Deviation of Energy from Mean")
+        plt.legend(loc="upper right")
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig('energy_plot_part5.png')
         
 
 def main():
@@ -559,7 +613,7 @@ def main():
 
     engine = RocketEngine(seed, N, engine_simulation_time, dt_engine, L, T)
     F, consumption = engine.run_engine() 
-    t_launch = 3e4 * (1e-5 * constants.yr) # in seconds
+    t_launch = 3e4 * (1e-5 * constants.yr) # in seconds 1e-5 from dt in planet_positions
     angle_launch = 0 # in radians
     rocket = Rocket(seed, F, consumption, fuel_mass, number_of_engines, rocket_duration, dt_rocket, planet_idx, t_launch, angle_launch)
     rocket_xy, rocket_v, total_fuel_consumed, launch_duration = rocket.run()
@@ -571,7 +625,8 @@ def main():
 
     tot_sim_time = 3 * constants.yr
     RocketSystem = RocketSolarSystem(seed, rocket, tot_sim_time, t_launch, planet_idx, launch_duration)
-    rocket_positions = RocketSystem.run()
+    rocket_positions, rocket_velocities = RocketSystem.run()
+    RocketSystem.plot_energy()
     RocketSystem.plot_combined()
     plt.show()
 
