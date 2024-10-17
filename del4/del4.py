@@ -37,11 +37,11 @@ system = SolarSystem(seed)
 mission = SpaceMission(seed)
 
 
-def inverse_stereographical_projection(rX, rY, phi0, theta0 = np.pi/2):
+def inverse_stereographical_projection(rX, rY, phi0 = 0, theta0 = np.pi/2):
     rho = np.sqrt(rX**2 + rY**2)
     beta = 2 * np.arctan2(rho, 2)
 
-    theta = np.pi/2 -np.arcsin(np.cos(beta) * np.cos(theta0) + (rY * np.sin(beta) * np.sin(theta0) / rho))
+    theta = theta0 - np.arcsin(np.cos(beta) * np.cos(theta0) + (rY * np.sin(beta) * np.sin(theta0) / rho))
     phi = phi0 + np.arctan2(rX * np.sin(beta), rho * np.sin(theta0) * np.cos(beta) - rY * np.cos(theta0) * np.sin(beta))
 
     # make them continous on the correct domain
@@ -52,7 +52,7 @@ def inverse_stereographical_projection(rX, rY, phi0, theta0 = np.pi/2):
 
 def construct_image(himmelkule, pixels, theta, phi):
     height = len(pixels[:, 0])
-    width = len(pixels[0, :])
+    width = len(pixels[0, :])  
 
     rgb_list = np.zeros((height, width, 3), dtype=np.uint8)
     
@@ -77,7 +77,7 @@ def find_phi(input_image, image_path, num_images=360):
 
 def calculate_radial_vel():
     lambda0 = 656.3e-9 # observed wavelength
-    doppler1, doppler2 = mission.star_doppler_shift_at_sun  # [nm]
+    doppler1, doppler2 = mission.star_doppler_shifts_at_sun  # [nm]
     doppler1 *= 1e-9 # [m]
     doppler2 *= 1e-9 # [m]
     v1 = constants.c * (doppler1/lambda0)
