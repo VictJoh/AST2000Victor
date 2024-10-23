@@ -405,8 +405,8 @@ class RocketSolarSystem:
         self.dt = self.times_seconds[1] - self.times_seconds[0]
 
         # Initial rocket position and velocity
-        rocket_pos_SI = rocket.rocket_pos + self.velocities_over_time_SI[self.idx_launch][planet_idx] * 597.059
-        rocket_v_SI = rocket.rocket_v + self.velocities_over_time_SI[self.idx_launch][planet_idx]
+        rocket_pos_SI = rocket.rocket_positions[-1] + self.velocities_over_time_SI[self.idx_launch][planet_idx] * 597.059
+        rocket_v_SI = rocket.rocket_velocities[-1] + self.velocities_over_time_SI[self.idx_launch][planet_idx]
 
         self.rocket_pos = rocket_pos_SI
         self.rocket_v = rocket_v_SI
@@ -484,7 +484,7 @@ def main():
 
     engine = RocketEngine(seed, N, engine_simulation_time, dt_engine, L, T)
     F, consumption = engine.run_engine() 
-    t_launch = 3e4 * (1e-5 * constants.yr) # in seconds
+    t_launch = 0 * (1e-5 * constants.yr) # in seconds
     angle_launch = 0 # in radians
     rocket = Rocket(seed, F, consumption, fuel_mass, number_of_engines, rocket_duration, dt_rocket, planet_idx, t_launch, angle_launch)
     rocket_xy, rocket_v, total_fuel_consumed, launch_duration = rocket.run()
@@ -499,12 +499,6 @@ def main():
     rocket_positions = RocketSystem.run()
     RocketSystem.plot_combined()
     plt.show()
-
-    # for part 4
-    RocketSystem.rocket.initiate_launch()
-    RocketSystem.rocket.mission.verify_launch_result((RocketSystem.rocket_positions[0])/constants.AU)
-    print(RocketSystem.rocket.mission.measure_distances())
-
 if __name__ == "__main__":
     main()
 
