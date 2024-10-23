@@ -288,6 +288,10 @@ def interpolate_vectorized(times, positions_over_time, new_times, velocities_ove
     else:
         return interpolated_positions
 
+def rotate_vector(vec, angle):
+    rotation_matrix = np.array([[np.cos(angle), -np.sin(angle)],
+                                [np.sin(angle),  np.cos(angle)]])
+    return np.dot(rotation_matrix, vec)
     
 class Rocket:
     def __init__(self, seed, F, consumption, fuel_mass, number_of_engines, rocket_duration, dt, planet_idx, t_launch = 0.0, angle_launch = 0.0):
@@ -322,9 +326,9 @@ class Rocket:
 
         # Interpolate planet position at launch time
         self.planet_pos = interpolate(self.times, self.positions_over_time, planet_idx, self.t_launch_years) * constants.AU  # m
-
         planet_surface_direction = np.array([np.cos(angle_launch), np.sin(angle_launch)])
-        self.rocket_pos = self.planet_pos + self.planet_radius * planet_surface_direction
+        self.rocket_pos = self.planet_pos + np.dot(self.planet_radius, planet_surface_direction)
+        print(self.rocket_pos)
 
         planet_rotation_speed = 2 * np.pi * self.planet_radius / self.planet_rotation_period
 
@@ -515,21 +519,25 @@ class RocketSystem:
         t_launch_years = rocket.t_launch / constants.yr # [yr]
         rocket_duration_years = simulation_time # [yr]
         t_end = t_launch_years + rocket_duration_years # [yr]
+        t_reached_escape_vel = t_launch_years + rocket.reached_escape_vel / constants.yr
 
-        # Pos and vel at end and start
+        # Pos and vel at end and start of reaching escape vel
         planet_pos_start, planet_vel_start = interpolate(self.times, self.positions_over_time , planet_idx, t_launch_years, velocities_over_time=self.velocities_over_time)
-        planet_pos_end, planet_vel_end = interpolate(self.times, self.positions_over_time, planet_idx, t_end, velocities_over_time=self.velocities_over_time)
-        
+        planet_pos_escape, planet_vel_ecape = interpolate(self.times, self.positions_over_time, planet_idx, t_reached_escape_vel, velocities_over_time=self.velocities_over_time)
+        angle_start = np.arctan2(planet_pos_start[1],planet_pos_start[0])
+        angle_end = np.arctan2(planet_pos_escape[1],planet_pos_escape[0])
+        d_angle = angle_end-angle_start
+        print(f"angle :{d_angle}")
 
         # Pos and vel relative to planet
-
-        self.rocket_pos = rocket.rocket_pos / constants.AU + planet_vel_start * (596.98 / constants.yr)
-        self.rocket_initial_pos = self.rocket_pos
+        self.rocket_pos = rocket.rocket_pos / constants.AU + planet_vel_start * (rocket.reached_escape_vel / constants.yr)
+        self.rocket_initial_pos = self.rocket_pos.copy()
 
         rocket_relative_vel = rocket.rocket_v * constants.yr / constants.AU  # [AU/yr]
+        rocket_relative_vel = rotate_vector(rocket_relative_vel,d_angle) # rotate to star's reference system
         self.rocket_vel = rocket_relative_vel + planet_vel_start  # [AU/yr]
-        self.rocket_initial_vel = self.rocket_vel
-        print(self.rocket_initial_vel)
+        self.rocket_initial_vel = self.rocket_vel.copy()
+        print(f"init vel in system: {self.rocket_initial_vel}")
 
         # make new times and velocities
         self.N = int(simulation_time // dt) 
@@ -703,7 +711,7 @@ def main():
     rocket.initiate_launch()
 
     # Initialize and run the rocket system simulation after launch
-    simulation_time = 10 # Total simulation time in years
+    simulation_time = 1 # Total simulation time in years
 
     dt_simulation = 1e-4  # Time step in years
 
@@ -719,8 +727,6 @@ def main():
     rocket_system.run()
     rocket_system.plot_combined()
     rocket.verify_orientation(rocket_system.rocket_initial_pos, rocket_system.rocket_initial_vel, orientation)
-
-
     # rocket_system.plot_energy()
 
 if __name__ == "__main__":
