@@ -14,3 +14,4 @@ planet_positions.npz
 *.png
 *.xml
 *.npy
+*.jpg
