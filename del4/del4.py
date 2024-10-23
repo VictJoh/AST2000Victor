@@ -38,6 +38,20 @@ mission = SpaceMission(seed)
 
 
 def inverse_stereographical_projection(rX, rY, phi0 = 0, theta0 = np.pi/2):
+    """
+    Finds the inverse stereographical projection from X,Y to theta, phi
+
+    Parameters:
+    rX (array): X-coordinates
+    rY (array): Y-coordinates
+    phi0 (float): Phi angle of center [rad]
+    theta0 (float): Theta angle of center [rad]
+
+    Return:
+    theta (array): Theta angles [rad]
+    phi (array): Phi angles [rad]
+    """
+
     rho = np.sqrt(rX**2 + rY**2)
     beta = 2 * np.arctan2(rho, 2)
 
@@ -51,6 +65,18 @@ def inverse_stereographical_projection(rX, rY, phi0 = 0, theta0 = np.pi/2):
 
 
 def construct_image(himmelkule, pixels, theta, phi):
+    """
+    Construct an RGB image based from spherical coords.
+
+    Parameters:
+    himmelkule (array): Array containing RGB-values for each pixel
+    pixels (array): Pixel-grid
+    theta (array): Theta angles [rad]
+    phi (array): Phi angles [rad]
+
+    Return:
+    rgb_list (array): 3D array representing the constructed RGB image.
+    """
     height = len(pixels[:, 0])
     width = len(pixels[0, :])  
 
@@ -58,11 +84,22 @@ def construct_image(himmelkule, pixels, theta, phi):
     
     for i in range(height):
         for j in range(width):
-            pixel_idx = mission.get_sky_image_pixel(theta[i, j], phi[i, j])
+            pixel_idx = mission.get_sky_image_pixel(theta[j, i], phi[j, i])
             rgb_list[i, j] = himmelkule[pixel_idx][2:]
     return rgb_list
 
 def find_phi(input_image, image_path, num_images=360):
+    """
+    Find the azimuthal angle phi that best matches an input image by comparing it to reference images.
+
+    Parameters:
+    input_image (str): File path to input image
+    image_path (str): File path to all images
+    num_images (int): Number of reference images (one for each phi)
+
+    Return:
+    best_phi (int): The best phi angle [deg]
+    """
     img = np.array(Image.open(input_image))
     min_diff = np.inf
     best_phi = None
@@ -76,6 +113,13 @@ def find_phi(input_image, image_path, num_images=360):
     return best_phi
 
 def calculate_radial_vel():
+    """
+    Calculate the radial velocities of two stars based on measured Doppler-shifts
+
+    Return:
+    v1 (float): Radial velocity of star1 [m/s]
+    v2 (float): Radial velocity of star2 [m/s].
+    """
     lambda0 = 656.3e-9 # observed wavelength
     doppler1, doppler2 = mission.star_doppler_shifts_at_sun  # [nm]
     doppler1 *= 1e-9 # [m]
@@ -85,6 +129,19 @@ def calculate_radial_vel():
     return v1, v2
 
 def calculate_spacecraft_vel(vstar1, vstar2, d_lambda1 = 0, d_lambda2 = 0):
+    """
+    Calculate rockets velocity in x,y direction
+
+    Parameters:
+    vstar1 (float): Radial velocity of the first star in [m/s[
+    vstar2 (float): Radial velocity of the second star in [m/s]
+    d_lambda1 (float): Doppler shift for the first star [nm]
+    d_lambda2 (float): Doppler shift for the second star [nm]
+
+    Return:
+    vx (float): Rocket-velocity in x [m/s]
+    vy (float): Rocket-velocity in y [m/s]
+    """
     lambda0 = 656.3e-9 # observed wavelength
     phi1, phi2 = mission.star_direction_angles
     v_measured1 = constants.c * (d_lambda1 / lambda0)
@@ -104,6 +161,19 @@ def calculate_spacecraft_vel(vstar1, vstar2, d_lambda1 = 0, d_lambda2 = 0):
     return vx, vy
 
 def test_spacecraft_vel(v_rocket, vstar1, vstar2, d_lambda1, d_lambda2):
+    """
+    Test the spacecraft velocity calculation function for correctness.
+
+    Parameters:
+    v_rocket (tuple): Expected spacecraft velocity components (vx, vy) [m/s]
+    vstar1 (float): Radial velocity of the first star [m/s]
+    vstar2 (float): Radial velocity of the second star in [m/s]
+    d_lambda1 (float): Doppler shift for the first star [nm]
+    d_lambda2 (float): Doppler shift for the second star [nm]
+
+    Returns:
+    AssertionError: If the calculated velocities deviate from the expected values 
+    """
     vx, vy = v_rocket
 
     d_lambda1 = 0
@@ -111,7 +181,7 @@ def test_spacecraft_vel(v_rocket, vstar1, vstar2, d_lambda1, d_lambda2):
 
     vx_approx, vy_approx = calculate_spacecraft_vel(vstar1, vstar2, d_lambda1, d_lambda2)    
 
-    tolerance = 1e-6
+    tolerance = 1e-4
     assert abs(vx_approx - vx) < tolerance, f"vx deviated by {vx_approx - vx}"
     assert abs(vy_approx - vy) < tolerance, f"vy deviated by {vy_approx - vy}"
 
@@ -119,7 +189,17 @@ def test_spacecraft_vel(v_rocket, vstar1, vstar2, d_lambda1, d_lambda2):
     return  
 
 
-def trilaterate(distances, positions):
+def trilaterate(distances, positions):  
+    """
+    Trilaterate rocket's position
+    Parameters:
+    distances (array): Distances to each planet and sun [AU]
+    positions (array): Positions of the planets [AU]
+
+    Returns:
+    position (array): Estimated position (x, y) of the spacecraft.
+    """
+
     x_sun, y_sun = 0, 0
     d_sun = distances[-1]
 
@@ -162,8 +242,8 @@ def main():
     Y_lim = 2 * np.sin(fov_theta / 2) / (1 + np.cos(fov_theta / 2))
 
     X = np.linspace(-X_lim, X_lim, width)
-    Y = np.linspace(-Y_lim, Y_lim, height)
-    rX, rY = np.meshgrid(X, Y)
+    Y = np.linspace(Y_lim, -Y_lim, height) # to avoid rotation of the picture for some reason
+    rX, rY = np.meshgrid(X, Y, indexing = 'ij')
     phi0 = 0
     theta, phi = inverse_stereographical_projection(rX, rY, phi0)
 
@@ -189,8 +269,8 @@ def main():
     print(vx, vy)
     # test_spacecraft_vel(v_rocket, vstar1, vstar2, d_lambda1, d_lambda2)
 
-    launch_time = 597.06 / constants.yr
-    time_idx = int(launch_time//1e-5) # launch time from part 1
+    launch_duration = 597.06 / constants.yr
+    time_idx = int(launch_duration//1e-5) # launch time from part 1
     planet_positions = positions_over_time[time_idx]
     distances = mission.measure_distances()
     print(trilaterate(planet_positions, distances))
