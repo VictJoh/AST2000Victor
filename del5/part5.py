@@ -490,8 +490,6 @@ class Rocket:
         """
         mission.verify_manual_orientation(position_after_launch, velocity_after_launch, angle_after_launch)
     
-    def begin_interplanetary(self):
-        mission.begin_interplanetary_travel()
 
 class RocketSystem:
     def __init__(self, rocket, simulation_time, dt, destination_idx):
@@ -565,8 +563,9 @@ class RocketSystem:
                 r_planet_norm = np.linalg.norm(r_planet) 
                 a_planet = -self.G * planet_masses[i] * r_planet / r_planet_norm**3
                 a_planets += a_planet
-                if r_planet_norm < 1e-6:
+                if r_planet_norm < 1e-10:
                     print(f"Rocket is only {r_planet_norm} AU away from planet")
+                    quit()
         else:
             None
         a_total = a_star + a_planets
@@ -631,11 +630,12 @@ class RocketSystem:
         # transfer orbit parameters
         a_t = (r_p + r2) / 2
         v_tp = np.sqrt(mu * (2 / r_p - 1 / a_t)) # velocity at periapsis of transfer orbit
-        v_ta = np.sqrt(mu * (2 / r2 - 1 / a_t)) # apoapsis
-        # v_ta =  4.2114174725294475 # actual velocity before boost 2 (if needed)
+        v_ta_calc = np.sqrt(mu * (2 / r2 - 1 / a_t)) # apoapsis
+        v_ta = v_ta_calc 
+        # v_ta = 4.420641561520822  # actual velocity before boost 2 (most likely needed if close to destination)
 
         print(v_tp, 'v_tp')
-        print(v_ta, 'v_ta')
+        print(f'v_ta_calc: {v_ta_calc}, v_ta_actual: {v_ta}')
         # first burn (the same as v_tp - v_p, but just to make it clear)
         dv_1 = v_circ_1 - v_p # boost into circular orbit
         print(dv_1)
@@ -714,12 +714,14 @@ class RocketSystem:
         dt_boost0 = m / F
 
         v_dir = (rocket_vel / np.linalg.norm(rocket_vel))
-        boost = dv0 * v_dir
-        rocket_vel += boost
+        boost0 = dv0 * v_dir
+        self.boost0 = boost0
+
+        rocket_vel += boost0
 
         fuel_consumed += consumption * dt_boost0
         m -= consumption * dt_boost0
-        print(f"performing boost 0: boosted (AU/yr): {boost}")
+        print(f"performing boost 0: boosted (AU/yr): {boost0}")
 
         rocket_pos_list = np.zeros((N,2))
         rocket_pos_list[0] = rocket_pos
@@ -734,10 +736,15 @@ class RocketSystem:
         idx_boost0 = 0
 
         l_destination_list = np.zeros(N-1)
+        reached_proximity_length = False
         calculated_Hohmann = False
         for i in range(N-1):
-            if calculated_Hohmann == False and t > 3: # calculate after a while so the rocket is closer to periapsis to cause less error (t must be manually adjusted per testing)
+            if calculated_Hohmann == False and t > 2.5: # calculate after a while so the rocket is closer to periapsis to cause less error (min value must be manually adjusted per testing)
                 dv1, dv2, t_1, t_12 = self.Hohmann(rocket_pos, rocket_vel, t)
+
+                self.t_1 = t_1
+                self.t_12 = t_12
+
                 idx_boost1 = np.argmin(abs(t_list - t_1)) 
                 idx_boost2 = np.argmin(abs(t_list - t_12))
                 calculated_Hohmann = True
@@ -746,19 +753,23 @@ class RocketSystem:
                 if i == idx_boost1:
                     print(np.linalg.norm(rocket_vel), 'actual velocity when boost 1')
                     dt_boost1 = abs(dv1) * m / F 
-                    boost = dv1 * v_dir
-                    rocket_vel += boost
+                    boost1 = dv1 * v_dir
+                    self.boost1 = boost1
+
+                    rocket_vel += boost1
                     fuel_consumed += consumption * dt_boost1
                     m -= consumption * dt_boost1
-                    print(f"performing boost 1: boosted (AU/yr): {boost} at time {t_1} years")
+                    print(f"performing boost 1: boosted (AU/yr): {boost1} at time {t_1} years")
                 if i == idx_boost2:
                     print(np.linalg.norm(rocket_vel), 'actual velocity when boost2')
                     dt_boost2 = abs(dv2) * m / F 
-                    boost = dv2 * v_dir
-                    rocket_vel += boost
+                    boost2 = dv2 * v_dir
+                    self.boost2 = boost2
+
+                    rocket_vel += boost2
                     fuel_consumed += consumption * dt_boost2
-                    m -= consumption * dt_boost1
-                    print(f"performing boost 2: boosted (AU/yr): {boost} at time {t_12} years")
+                    m -= consumption * dt_boost2
+                    print(f"performing boost 2: boosted (AU/yr): {boost2} at time {t_12} years")
 
             if m < mission.spacecraft_mass / constants.m_sun:
                 print('ran out of fuel filled 1000 kg')
@@ -769,7 +780,7 @@ class RocketSystem:
             rocket_pos_list[i+1] = rocket_pos
 
             # update acceleration
-            planet_positions = self.interpolated_positions[i]
+            planet_positions = self.interpolated_positions[i+1]
             a_iplus1 = self.acceleration(rocket_pos, planet_positions, masses, star_mass)
 
             # update velocity
@@ -789,7 +800,8 @@ class RocketSystem:
             l_destination = np.linalg.norm(rocket_pos - planet_positions[self.destination_idx])
             proximity_length = np.linalg.norm(rocket_pos)*np.sqrt(masses[self.destination_idx])/(10*star_mass)
             l_destination_list[i] = l_destination - proximity_length
-            if l_destination <= proximity_length:
+            if l_destination <= proximity_length and reached_proximity_length == False:
+                reached_proximity_length = True
                 print(f"reached prox length at time : {t} years")
 
 
@@ -798,8 +810,11 @@ class RocketSystem:
         self.rocket_vel = rocket_vel
         self.rocket_vel_list = rocket_vel_list
         self.l_destination_list = l_destination_list
-        print(f"deviated by {min((l_destination_list))} AU from the destination")
+        if reached_proximity_length == False:
+            print(f"deviated by {min((l_destination_list))} AU from the desired proximity-length")
+
         print(f"fuel consumed {fuel_consumed * constants.m_sun}(kg)")
+        print(f"final position in space: {rocket_pos} AU")
         
         self.energies = np.array(energies)
     
@@ -816,8 +831,8 @@ class RocketSystem:
 
         initial_planet1 = self.interpolated_positions[0, self. rocket.planet_idx, :]  
         end_planet2 = self.interpolated_positions[-1, self.destination_idx, :] 
-        plt.plot(initial_planet1[0], initial_planet1[1], 'ro', markersize=2, label="Initial Position of Planet 1")
-        plt.plot(end_planet2[0], end_planet2[1], 'bo', markersize=2, label="End Position of Planet 2")
+        plt.plot(initial_planet1[0], initial_planet1[1], 'ro', markersize=3, label="Initial Position of Planet 1")
+        plt.plot(end_planet2[0], end_planet2[1], 'bo', markersize=3, label="End Position of Planet 2")
         
         rocket_x = self.rocket_pos_list[:, 0] 
         rocket_y = self.rocket_pos_list[:, 1] 
@@ -880,6 +895,75 @@ class RocketSystem:
         plt.savefig('L_destination.png')
         plt.show()
 
+    def interplanetary_travel(self, take_picture = False):
+        InterplanetaryTravel = mission.begin_interplanetary_travel()
+        InterplanetaryTravel.verbose = False
+
+        coast_time = 0.05
+
+        times = self.new_times
+        t_start = times[0]
+        t_end = times[-1]
+
+        t_1 = self.t_1 + t_start
+        t_12 = self.t_12 + t_start
+
+        boost0 = self.boost0
+        boost0_performed = False
+
+        boost1 = self.boost1
+        boost1_performed = False
+
+        boost2 = self.boost2
+        boost2_performed = False
+        
+        t = t_start
+
+        while t < t_end - coast_time:
+            if boost0_performed == False:
+                InterplanetaryTravel.boost(boost0)
+
+            _, pos, vel = InterplanetaryTravel.orient()
+
+            i = np.argmin(np.abs(times - t))
+
+            simulated_pos = self.rocket_pos_list[i]
+            simulated_vel = self.rocket_vel_list[i]
+
+            tol = 1e-6
+
+            dev_pos = np.linalg.norm(simulated_pos - pos)
+            dev_vel = np.linalg.norm(simulated_vel - vel)
+
+            if dev_pos > tol or dev_vel > tol:
+                delta_v = simulated_vel - vel
+                InterplanetaryTravel.boost(delta_v)
+
+            if boost1_performed == False and t + coast_time >= t_1:
+                InterplanetaryTravel.coast(t_1 - t)
+                t = t_1
+                InterplanetaryTravel.boost(boost1)
+                boost1_performed = True
+            elif boost2_performed == False and t + coast_time >= t_12:
+                InterplanetaryTravel.coast(t_12 - t)
+                t = t_12
+                InterplanetaryTravel.boost(boost2)
+                boost2_performed = True
+            else:
+                InterplanetaryTravel.coast(coast_time)
+                t += coast_time
+
+            if t > t_end - coast_time:
+                InterplanetaryTravel.coast(t_end - t)
+                t += t_end - t
+
+        print(f"Position deviated by {dev_pos} AU")
+        InterplanetaryTravel.verbose = True
+        InterplanetaryTravel.orient()
+        if take_picture == True:
+            InterplanetaryTravel.look_in_direction_of_planet(self.destination_idx)
+            InterplanetaryTravel.take_picture()
+
 
 def main():
     seed = 4042
@@ -896,7 +980,7 @@ def main():
 
     engine = RocketEngine(seed, N, engine_simulation_time, dt_engine, L, T)
     F, consumption = engine.run_engine() 
-    t_launch = 3  #yrs brute forced as I can't use Hohmann launch time because of angle = 0 and the boost dv0 :( 
+    t_launch = 4.25 #yrs brute forced as I can't use Hohmann launch time because of angle = 0 and the boost dv0 :( 
     angle_launch = 0 # 0.59 #0.59 # in radians
     rocket = Rocket(seed, F, consumption, fuel_mass, number_of_engines, rocket_duration, dt_rocket, planet_idx, t_launch, angle_launch)
     rocket.initiate_launch()
@@ -908,7 +992,7 @@ def main():
 
 
     # Initialize and run the rocket system simulation after launch
-    simulation_time = 9 # Total simulation time in years
+    simulation_time = 4.9 # Total simulation time in years
 
     dt_simulation = 1e-5  # Time step in years
     destination_idx = 1 # planet 2
@@ -926,23 +1010,14 @@ def main():
     _, vel, _ = shortcut.get_orientation_data()
     rocket_system.rocket_vel = np.array(vel)
     rocket_system.rocket_initial_vel = np.array(vel)
+    rocket.verify_orientation(rocket_system.rocket_initial_pos, rocket_system.rocket_initial_vel, orientation)
 
     rocket_system.run(boosts = boosts, calc_energy = True, calc_a = True)
 
-
     rocket_system.plot_combined(boosts)
-    rocket.verify_orientation(rocket_system.rocket_initial_pos, rocket_system.rocket_initial_vel, orientation)
-    rocket_system.plot_energy(boosts)
+    # rocket_system.plot_energy(boosts)
     # rocket_system.plot_l_distances()
-    # InterplanetaryTravel = mission.begin_interplanetary_travel()
-    # InterplanetaryTravel.boost([0.12287039, -0.48466779])
-    # InterplanetaryTravel.coast(duration = 6.0429209789946725)
-    # InterplanetaryTravel.boost([0.10736816, 0.15136022])
-    # InterplanetaryTravel.coast(duration =5.163027000764754 - 3.4449643103869847)
-    # InterplanetaryTravel.boost([0.39538224, 0.55751097])
-    # # InterplanetaryTravel.coast(duration =)
-    # InterplanetaryTravel.look_in_direction_of_planet(planet_idx = destination_idx)
-    # InterplanetaryTravel.orient()
-    # InterplanetaryTravel.take_picture()
+    rocket_system.interplanetary_travel(take_picture = True)
+    
 if __name__ == "__main__":
     main()
