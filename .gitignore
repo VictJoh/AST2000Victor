@@ -16,3 +16,6 @@ planet_positions.npz
 *.npy
 *.jpg
 del3/håndteikn_del3.pdf
+*.jpeg
+Del 6/sigma_noise.txt
+Del 6/spectrum_seed42_600nm_3000nm.txt

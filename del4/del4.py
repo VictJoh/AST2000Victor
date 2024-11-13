@@ -124,7 +124,7 @@ def calculate_radial_vel():
     doppler1, doppler2 = mission.star_doppler_shifts_at_sun  # [nm]
     doppler1 *= 1e-9 # [m]
     doppler2 *= 1e-9 # [m]
-    v1 = constants.c * (doppler1/lambda0)
+    v1 = constants.c * (doppler1/lambda0) 
     v2 = constants.c  * (doppler2/lambda0)
     return v1, v2
 
@@ -160,34 +160,44 @@ def calculate_spacecraft_vel(vstar1, vstar2, d_lambda1 = 0, d_lambda2 = 0):
     vx, vy = np.linalg.solve(A, b)
     return vx, vy
 
-def test_spacecraft_vel(v_rocket, vstar1, vstar2, d_lambda1, d_lambda2):
+def test_spacecraft_vel():
     """
     Test the spacecraft velocity calculation function for correctness.
-
-    Parameters:
-    v_rocket (tuple): Expected spacecraft velocity components (vx, vy) [m/s]
-    vstar1 (float): Radial velocity of the first star [m/s]
-    vstar2 (float): Radial velocity of the second star in [m/s]
-    d_lambda1 (float): Doppler shift for the first star [nm]
-    d_lambda2 (float): Doppler shift for the second star [nm]
-
-    Returns:
-    AssertionError: If the calculated velocities deviate from the expected values 
     """
-    vx, vy = v_rocket
+    vx = 1000 
+    vy = 1000  
+    v_rocket = (vx, vy)
 
-    d_lambda1 = 0
-    d_lambda2 = 0
+    # 2. Get star direction angles (in radians)
+    phi1, phi2 = mission.star_direction_angles
 
-    vx_approx, vy_approx = calculate_spacecraft_vel(vstar1, vstar2, d_lambda1, d_lambda2)    
+    # assume no velocity of star
+    vstar1 = 0 
+    vstar2 = 0
 
-    tolerance = 1e-4
-    assert abs(vx_approx - vx) < tolerance, f"vx deviated by {vx_approx - vx}"
-    assert abs(vy_approx - vy) < tolerance, f"vy deviated by {vy_approx - vy}"
+    # calc expected doppler
+    lambda0 = 656.3e-9  # Rest wavelength in meters
+    c = constants.c      # Speed of light in m/s
 
-    print("measured velocities are as expected")
-    return  
+    # calc radial velocity towards the stars
+    v_radial1 = vx * np.cos(phi1) + vy * np.sin(phi1)
+    v_radial2 = vx * np.cos(phi2) + vy * np.sin(phi2)
 
+    # calculate observed dopplershift as vel of stars are 0
+    v_measured1 = - v_radial1
+    v_measured2 = - v_radial2
+
+    d_lambda1 = (v_measured1 / c) * lambda0  # [m]
+    d_lambda2 = (v_measured2 / c) * lambda0  # [m]
+
+    vx_calculated, vy_calculated = calculate_spacecraft_vel(vstar1, vstar2, d_lambda1, d_lambda2)
+
+    # compare
+    tolerance = 1e-4  # Tolerance in m/s
+    assert abs(vx_calculated - vx) < tolerance, f"vx deviated by {vx_calculated - vx}"
+    assert abs(vy_calculated - vy) < tolerance, f"vy deviated by {vy_calculated - vy}"
+
+    print("Measured velocities are as expected")
 
 def trilaterate(distances, positions):  
     """
@@ -215,8 +225,17 @@ def trilaterate(distances, positions):
         A[i, 1] = 2 * (y - y_sun)
 
         b[i] = -d**2 + k 
-        position = np.linalg.least_squares(A, b, rcond=None)[0]
+        position = np.linalg.lstsq(A, b, rcond=None)[0]
     return position
+
+### TO BE USED FOR TRILATERATE FROM PART 6 SO I DO NOT HAVE TO ADD MUCH CODE UNUSED
+def initiate_launch():
+    mission.set_launch_parameters(thrust = 1950414.2360053714, mass_loss_rate = 313.3328015733722, initial_fuel_mass = 100000, estimated_launch_duration = 1200, launch_position = [2.79291596, 0.50094891], time_of_launch=6.23095)
+    mission.launch_rocket(time_step = 0.001)
+
+def verify_launch():
+    mission.verify_launch_result(position_after_launch =  [2.79291222, 0.50100744])
+
 
 
 def main():
@@ -249,7 +268,7 @@ def main():
 
     # image = construct_image(himmelkule, pixels, theta, phi)
     # actual_image = Image.fromarray(image)
-    # actual_image.save(f'C:/Users/victo/Documents/GitHub/AST2000-Project/del4/pictures/himmelkule_image{0}.png')
+    # actual_image.save(f'del4/pictures/himmelkule_image{0}.png')
 
     # for i in range(360):
     #     phi0 = i * (np.pi / 180) 
@@ -257,24 +276,30 @@ def main():
         
     #     image = construct_image(himmelkule, pixels, theta, phi)
     #     actual_image = Image.fromarray(image)
-    #     actual_image.save(f'C:/Users/victo/Documents/GitHub/AST2000-Project/del4/pictures/himmelkule_image{i}.png')
+    #     actual_image.save(f'del4/pictures/himmelkule_image{i}.png')
 
-    image_path = 'C:/Users/victo/Documents/GitHub/AST2000-Project/del4/pictures'
-    input_img = 'C:/Users/victo/Documents/GitHub/AST2000-Project/sample0200.png'
+    image_path = 'del4/pictures'
+    input_img = 'sample0200.png'
     phi_new = find_phi(input_img, image_path)
     print(f"sample0200 centered at around {phi_new} deg")
 
+    test_spacecraft_vel()
+
+    initiate_launch()
+    verify_launch()
+
+    mission.take_picture(filename = "del4/pictures/find_phi_part4.jpeg")
+    phi = find_phi(input_image = "find_phi_part4.jpeg", image_path = image_path)
     vstar1, vstar2 = calculate_radial_vel()
     vx, vy = calculate_spacecraft_vel(vstar1, vstar2)
-    print(vx, vy)
-    # test_spacecraft_vel(v_rocket, vstar1, vstar2, d_lambda1, d_lambda2)
+    velocity_after_launch = np.array([vx, vy]) / constants.AU * constants.yr # AU/yr
+    print("vel = ",velocity_after_launch)
 
-    launch_duration = 597.06 / constants.yr
-    time_idx = int(launch_duration//1e-5) # launch time from part 1
+    launch_time = 6.23095 + 307.846/constants.yr
+    time_idx = int(launch_time//1e-5) # launch time from part 1
     planet_positions = positions_over_time[time_idx]
     distances = mission.measure_distances()
-    print(trilaterate(planet_positions, distances))
-
-    print("finished running")
+    position_after_launch = trilaterate(distances, planet_positions) # the values are a bit off as I have not interpolated, but they worked earlier, but I changed the launch etc. and changed it here aswell without thinking twice
+    mission.verify_manual_orientation(position_after_launch = position_after_launch, velocity_after_launch = velocity_after_launch, angle_after_launch = phi)  
 if __name__ == "__main__":
     main()
