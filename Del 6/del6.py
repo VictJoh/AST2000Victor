@@ -136,12 +136,18 @@ def begin_interplanetary():
 
 def place_in_orbit():
     time_after_launch = 11.9264
-    shortcut.place_spacecraft_in_stable_orbit(time = time_after_launch, orbital_height = 5e5, orbital_angle = 0, planet_idx = 1)
+    shortcut.place_spacecraft_in_stable_orbit(time = time_after_launch, orbital_height = 5e5, orbital_angle = 0, planet_idx = 1) # even though my orbit was circular as shown in part 5 it wasn't close enough :(
 
 def descend():
     landing_sequence = mission.begin_landing_sequence()
     print("Landing Begun")
-
+    
+    """
+    The task wasn't really clear here as if one should stabilize an orbit than descend to get another stable orbit, which seemed strange as that would also require two boosts.
+    Furthermore, it wasn't clear if I should do this descending as I am alone or if I can just place myself into a close orbit. However, I discussed it with a group teacher
+    and we agreed that I could just place myself in a close orbit. If not I could have the framework to do the nescessary boosts and calculations as done in part5, I just did not have the time
+    as it was not nescessary. I am however now thinking while writing this that I could have spent my time writing the code, but then I would have to debug :(
+    """
     # t0, pos0, vel0 = landing_sequence.orient()
     # vel0_magnitude = np.linalg.norm(vel0)
 
@@ -175,10 +181,10 @@ def descend():
     t0, pos0, v0 = landing_sequence.orient()
 
     plt.figure()
-    plt.plot(np.array(times) / (3600*24), np.array(distances) / 1000, label='Distance to planet', color='blue', alpha=0.6)
+    plt.plot(np.array(times) / (3600), np.array(distances) / 1000, label='Distance to planet', color='blue', alpha=0.6)
 
     plt.title(f"Distance to planet")
-    plt.xlabel('Time (days)')
+    plt.xlabel('Time (hours)')
     plt.ylabel('Distance to planet (km)')
     plt.legend()
     plt.grid(True)
@@ -212,9 +218,9 @@ def calc_coords(current_coords, t0, t1):
 
     new_coords_cartesian = spherical_to_cartesian(new_coords_spherical)
 
-def scout(t0, pos0, v0, landing_sequence, num_pictures=10):
+def scout(t0, pos0, v0, landing_sequence, num_pictures):
     a, e, b, T, apoapsis, periapsis = calc_orbit(position=pos0, velocity=v0, origin = None, origin_vel=None, mass = system.masses[1], calc_all=True) # origin is now planet 1
-
+    print(T/3600)
     dt_pictures = T / num_pictures
     t_list = np.linspace(0, T, num_pictures)
     if dt_pictures <= 0:
@@ -255,7 +261,7 @@ def calc_sigma(lambd0, T, m):
     return sigma * 1e9 # back to nm
 
 def Gaussian_line(lambd, F_min, sigma, lambd0):
-    flux = 1 + (F_min - 1) * np.exp(-((lambd - lambd0)**2) / (2 * sigma**2)) # F(λ) = Fcont(λ) + (Fmin − Fcont(λ))e−(λ−λ0)2/(2σ2) where Fcont is 1 for all lambda
+    flux = 1 + (F_min - 1) * np.exp(-((lambd - lambd0)**2) / (2 * sigma**2)) # F(λ) = Fcont(λ) + (Fmin − Fcont(λ))e−(λ−λ0)^2/(2σ^2) where Fcont is 1 for all lambda
     return flux
 
 def calc_chi(observed_flux, expected_flux, sigma_noise):
@@ -358,64 +364,65 @@ def plot_fit(wavelengths, flux, noise, result):
 def plot_atmosphere(molecules, molecules_in_atmosphere, plot_T = True, plot_rho = True):
     mu = np.mean([molecules[molecule]["mass"] for molecule in molecules_in_atmosphere])
 
-    mass = system.masses[1]
-    R = system.radii[1]
+    M = system.masses[1] * constants.m_sun
+    R = system.radii[1] * 1e3 # m
     G = constants.G
-    g = (G*mass) / R**2
+    g = (G*M) / R**2
 
     gamma = 1.4    
-    m_H = constants.m_H2
+    m_H = constants.m_p # kg
     k = constants.k_B  
 
-    T0 = 291.95 # K surface temperature on planet 1         
-    rho0 = system.atmospheric_densities[1] #kg/m^3
+    T0 = 291.95 # [K] surface temperature on planet 1         
+    rho0 = system.atmospheric_densities[1] #[kg/m^3]
+    print(R)
+    print(M)
+    print(rho0)
 
-    a = gamma / (gamma - 1)  
+    a = 1 / (gamma - 1)  
 
-    b = (mu * m_H * g * (gamma - 1)) / (gamma * k)  
-    c = T0 / 2                                   
-    d = (2 * mu * m_H * g) / (k * T0)            
+    b = (mu * m_H * g * (gamma - 1)) / (gamma * k)                                
+    c = (2 * mu * m_H * g) / (T0 * k)            
+
+    rho_a = rho0 * 0.5**(a)
 
 
-    h_a = (gamma * k * T0) / (2 * mu * m_H * g * (gamma - 1))  
-    h_a = h_a  
-    
-    h_list = np.linspace(0, h_a*2, 1000) 
+    h_a = T0 / (2*b)
+
+    h_list = np.linspace(0, h_a*5, 1000) 
     T_list = np.zeros_like(h_list)
     rho_list = np.zeros_like(h_list)
 
     adiabatic_mask = (h_list <= h_a)
-    isothermal_mask = (h_list >h_a)
+    isothermal_mask = (h_list > h_a)
 
     T_list[adiabatic_mask] = T0 - b * h_list[adiabatic_mask]
-    T_list[isothermal_mask] = c
+    T_list[isothermal_mask] = T0 /2
 
-    rho_list[adiabatic_mask] = rho0 * (T0 - b * h_list[adiabatic_mask])**a
-    rho_list[isothermal_mask] = rho0 * c**a * np.exp(-d * (h_list[isothermal_mask]   - h_a))
+    rho_list[adiabatic_mask] = rho0 * (1 - (b/T0) * h_list[adiabatic_mask])**a
+    rho_list[isothermal_mask] = rho_a * np.exp(-c * (h_list[isothermal_mask] - h_a))
     
     h_list /= 1000 # turn into km
     h_a /= 1000 # --||--
     if plot_T == True:
         plt.figure()
-        plt.plot(h_list / 1000, T_list, label='Temperature', color='red')
-        plt.axvline(x=h_a / 1000, color='blue', linestyle='--', label='h_a (Adiabatic end)')
+        plt.plot(h_list, T_list, label='Temperature', color='red')
+        plt.axvline(x=h_a, color='blue', linestyle='--', label='h_a (Adiabatic end)')
         plt.title('Temperature vs Height')
         plt.xlabel('Height (km)')
         plt.ylabel('Temperature (K)')
         plt.legend()
-        plt.tight_layout()
-        plt.savefig("Temperature_Profile.png")
+        plt.savefig("Temperature.png")
         plt.show()
     if plot_rho == True:
         plt.figure()
-        plt.plot(h_list / 1000, rho_list, label='Density', color='green')
-        plt.axvline(x=h_a / 1000, color='blue', linestyle='--', label='h_a (Adiabatic end)')
-        plt.title('Density Profile vs Height')
+        plt.plot(h_list, rho_list, label='Density', color='green')
+        plt.axvline(x=h_a, color='blue', linestyle='--', label='h_a (Adiabatic end)')
+        plt.title('Density vs Height')
         plt.xlabel('Height (km)')
         plt.ylabel('Density (kg/m³)')
         plt.legend()
-        plt.tight_layout()
-        plt.savefig("Density_Profile.png")
+        plt.savefig("Density.png")
         plt.show()
 
 def main():
@@ -428,7 +435,7 @@ def main():
     # InterplanetaryTravel.record_destination(1)
     # place_in_orbit()
     # t0, pos0, v0, landing_sequence = descend()
-    # scout(t0, pos0, v0, landing_sequence, num_pictures=10)
+    # scout(t0, pos0, v0, landing_sequence, num_pictures=20)
     
     molecules = {
     "O2": {"spectral_lines": [632, 690, 760], "mass": 32},
@@ -439,23 +446,23 @@ def main():
     "N2O": {"spectral_lines": [2870], "mass": 44}
     }
 
-    wavelengths, flux, noise = load_data()
-    fits = find_fits(molecules, wavelengths, flux, noise)
+    # wavelengths, flux, noise = load_data()
+    # fits = find_fits(molecules, wavelengths, flux, noise)
 
 
-    for result in fits:
-        print(
-            f"{result['molecule']}, Original lambd0: {result['lambd0']} nm, "
-            f"Shifted lambd0: {result['shifted_lambd0']:.3f} nm, "
-            f"Doppler Shift = {result['lambd0'] - result['shifted_lambd0']:.3f} nm, "
-            f"F_min: {result['F_min']:.3f}, T: {result['T']} K, "
-            f"Sigma: {result['sigma']:.3f} nm, "
-            f"Chi^2: {result['chi']:.3f} "
-            f"Reduced Chi^2: {result['chi_reduced']:.3f}, "
-            f"p-value: {result['p_value']:.3f}"
-        )
-        plot_fit(wavelengths, flux, noise, result)
-    molecules_in_atmosphere = ["O2", "CO"]
+    # for result in fits:
+    #     print(
+    #         f"{result['molecule']}, Original lambd0: {result['lambd0']} nm, "
+    #         f"Shifted lambd0: {result['shifted_lambd0']:.3f} nm, "
+    #         f"Doppler Shift = {result['lambd0'] - result['shifted_lambd0']:.3f} nm, "
+    #         f"F_min: {result['F_min']:.3f}, T: {result['T']} K, "
+    #         f"Sigma: {result['sigma']:.3f} nm, "
+    #         f"Chi^2: {result['chi']:.3f} "
+    #         f"Reduced Chi^2: {result['chi_reduced']:.3f}, "
+    #         f"p-value: {result['p_value']:.3f}"
+    #     )
+    #     plot_fit(wavelengths, flux, noise, result)
+    molecules_in_atmosphere = ["CO2", "CH4"]
     plot_atmosphere(molecules, molecules_in_atmosphere)
 
 if __name__ == "__main__":
