@@ -142,12 +142,6 @@ def descend():
     landing_sequence = mission.begin_landing_sequence()
     print("Landing Begun")
     
-    """
-    The task wasn't really clear here as if one should stabilize an orbit than descend to get another stable orbit, which seemed strange as that would also require two boosts.
-    Furthermore, it wasn't clear if I should do this descending as I am alone or if I can just place myself into a close orbit. However, I discussed it with a group teacher
-    and we agreed that I could just place myself in a close orbit. If not I could have the framework to do the nescessary boosts and calculations as done in part5, I just did not have the time
-    as it was not nescessary. I am however now thinking while writing this that I could have spent my time writing the code, but then I would have to debug :(
-    """
     # t0, pos0, vel0 = landing_sequence.orient()
     # vel0_magnitude = np.linalg.norm(vel0)
 
@@ -212,11 +206,12 @@ def calc_coords(current_coords, t0, t1):
     current_spherical = cartesian_to_spherical(current_coords)
     r, theta, phi = current_spherical
 
-    omega = 2 * np.pi / system.periods[1]
+    omega = 2 * np.pi / system.rotational_periods[1]
     phi_rotated = (phi + omega * time_elapsed) % (2 * np.pi) # rotate along phi
     new_coords_spherical = np.array([r, theta, phi_rotated]) # new coords
 
     new_coords_cartesian = spherical_to_cartesian(new_coords_spherical)
+    return new_coords_cartesian
 
 def scout(t0, pos0, v0, landing_sequence, num_pictures):
     a, e, b, T, apoapsis, periapsis = calc_orbit(position=pos0, velocity=v0, origin = None, origin_vel=None, mass = system.masses[1], calc_all=True) # origin is now planet 1
@@ -227,17 +222,16 @@ def scout(t0, pos0, v0, landing_sequence, num_pictures):
         print("dt_pictures is less than 0")
         quit()
 
-    potential_sites_spherical = []
+    potential_sites_cartesian = np.zeros((len(t_list), 3))
     landing_sequence.verbose = False
     for i, t in enumerate(t_list):
         t, pos, vel = landing_sequence.orient()
-        
-        potential_sites_spherical.append(cartesian_to_spherical(pos))
+        potential_sites_cartesian[i] = pos
 
         landing_sequence.look_in_direction_of_planet()
         landing_sequence.take_picture(filename=f'scout_pic{i}.xml')
         landing_sequence.fall(dt_pictures)
-    return potential_sites_spherical
+    return t_list, potential_sites_cartesian
 
 def load_data():
     data = np.loadtxt("Del 6/spectrum_seed42_600nm_3000nm.txt")
@@ -362,27 +356,24 @@ def plot_fit(wavelengths, flux, noise, result):
     plt.close()
     
 def plot_atmosphere(molecules, molecules_in_atmosphere, plot_T = True, plot_rho = True):
-    mu = np.mean([molecules[molecule]["mass"] for molecule in molecules_in_atmosphere])
+    mu = np.mean([molecules[molecule]["mass"] for molecule in molecules_in_atmosphere]) # u
 
     M = system.masses[1] * constants.m_sun
     R = system.radii[1] * 1e3 # m
-    G = constants.G
-    g = (G*M) / R**2
+    G = constants.G # m^3kg^-1s^-2
+    g = (G*M) / R**2 # [m/s^2]
 
     gamma = 1.4    
-    m_H = constants.m_p # kg
-    k = constants.k_B  
+    m_H = constants.m_p # [kg]
+    k = constants.k_B  # [(m^2 kg) / (s^2 K)]
 
     T0 = 291.95 # [K] surface temperature on planet 1         
-    rho0 = system.atmospheric_densities[1] #[kg/m^3]
-    print(R)
-    print(M)
-    print(rho0)
+    rho0 = system.atmospheric_densities[1] # [kg/m^3]
 
     a = 1 / (gamma - 1)  
 
-    b = (mu * m_H * g * (gamma - 1)) / (gamma * k)                                
-    c = (2 * mu * m_H * g) / (T0 * k)            
+    b = (mu * m_H * g * (gamma - 1)) / (gamma * k) # K/m                               
+    c = (2 * mu * m_H * g) / (T0 * k)  # 1/m
 
     rho_a = rho0 * 0.5**(a)
 
@@ -397,13 +388,29 @@ def plot_atmosphere(molecules, molecules_in_atmosphere, plot_T = True, plot_rho 
     isothermal_mask = (h_list > h_a)
 
     T_list[adiabatic_mask] = T0 - b * h_list[adiabatic_mask]
-    T_list[isothermal_mask] = T0 /2
+    T_list[isothermal_mask] = T0 / 2
 
     rho_list[adiabatic_mask] = rho0 * (1 - (b/T0) * h_list[adiabatic_mask])**a
     rho_list[isothermal_mask] = rho_a * np.exp(-c * (h_list[isothermal_mask] - h_a))
     
     h_list /= 1000 # turn into km
     h_a /= 1000 # --||--
+    print("mu = ", mu)
+    print("m_H = ", m_H)
+    print("k = ", k)
+    print("M = ", M)
+    print("R = ", R)
+    print("g = ", g)
+    print("gamma = ", gamma)
+    print("T0 = ", T0)
+    print("rho0 = ", rho0)
+    print("a = ", a)
+    print("b = ", b)
+    print("c = ", c)
+    print("rho_a = ", rho_a)
+    print("h_a = ", h_a)
+    print("T0/2 = ", T0 / 2)
+
     if plot_T == True:
         plt.figure()
         plt.plot(h_list, T_list, label='Temperature', color='red')
@@ -427,16 +434,21 @@ def plot_atmosphere(molecules, molecules_in_atmosphere, plot_T = True, plot_rho 
 
 def main():
     
-    # initiate_launch()
-    # verify_launch()
-    # verify_orientation()
-    # # begin_interplanetary() # not used as I got the nescessary info
-    # InterplanetaryTravel = mission.begin_interplanetary_travel()
-    # InterplanetaryTravel.record_destination(1)
-    # place_in_orbit()
-    # t0, pos0, v0, landing_sequence = descend()
-    # scout(t0, pos0, v0, landing_sequence, num_pictures=20)
-    
+    initiate_launch()
+    verify_launch()
+    verify_orientation()
+    # begin_interplanetary() # not used as I got the nescessary info
+    InterplanetaryTravel = mission.begin_interplanetary_travel()
+    InterplanetaryTravel.record_destination(1)
+    place_in_orbit()
+    t0, pos0, v0, landing_sequence = descend()
+    t_list, pos_list = scout(t0, pos0, v0, landing_sequence, num_pictures=20)
+    landing_site = pos_list[13]
+    picture_time = t_list[13]
+    print(f"Cartesian coordinates of landing site{landing_site}, at time: {picture_time}")
+    print(cartesian_to_spherical(landing_site))
+
+
     molecules = {
     "O2": {"spectral_lines": [632, 690, 760], "mass": 32},
     "H2O": {"spectral_lines": [720, 820, 940], "mass": 18},
@@ -446,8 +458,8 @@ def main():
     "N2O": {"spectral_lines": [2870], "mass": 44}
     }
 
-    # wavelengths, flux, noise = load_data()
-    # fits = find_fits(molecules, wavelengths, flux, noise)
+    # # wavelengths, flux, noise = load_data()
+    # # fits = find_fits(molecules, wavelengths, flux, noise)
 
 
     # for result in fits:
