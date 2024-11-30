@@ -44,6 +44,7 @@ system = SolarSystem(seed)
 mission = SpaceMission(seed)
 shortcut = SpaceMissionShortcuts(mission, [78257, 21784])
 
+
 sigma = constants.sigma
 
 star_radius = system.star_radius * 1000 # [m]
@@ -78,4 +79,30 @@ ax.set_yscale('log')
 ax.set_ylim(1e-4, 1e6)
 
 plt.savefig('Del7/HR_diagram.png')
-plt.show()
+# plt.show()
+
+
+def core_temp():
+    X = 0.7
+    Y = 0.2
+    Z = 0.1
+
+    mu = 4 / (6*X + Y + 2)
+    T0 = system.star_temperature # K
+    G = constants.G 
+    R = system.star_radius * 1e3 # m
+    V = (4/3) * np.pi * R**3 
+    star_mass = system.star_mass * constants.m_sun
+    m_H = constants.m_p
+    k = constants.k_B
+    rho0 = system.star_mass / V
+
+    T_c = T0 + (G * (2 * np.pi / 3) * rho0 * (mu * m_H) / k) * R**2
+    
+    return T_c
+
+
+Tc = core_temp()
+print(f"T_c = {Tc:.2e} K")
+
+
