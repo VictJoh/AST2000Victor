@@ -1,0 +1,45 @@
+Rocket was moved down by 69970.5 m to stand on planet surface.
+New launch parameters set.
+Launch completed, reached escape velocity in 307.846 s.
+Your spacecraft position was satisfyingly calculated. Well done!
+*** Achievement unlocked: No free launch! ***
+Pointing angle after launch correctly calculated. Well done!
+Velocity after launch correctly calculated. Well done!
+Position after launch correctly calculated. Well done!
+Your manually inferred orientation was satisfyingly calculated. Well done!
+*** Achievement unlocked: Well-oriented! ***
+Recorded interplanetary travel destination:
+Time: 6.23096 yr
+Position: (2.79291, 0.501007) AU
+Velocity: (2.15889, 6.07076) AU/yr
+Note: Existing recorded destination was cleared.
+Recorded interplanetary travel destination:
+Time: 11.9264 yr
+Position: (-0.409892, 3.85457) AU
+Velocity: (-4.9047, 1.129) AU/yr
+Note: Ongoing interplanetary travel was terminated.
+Landing Begun
+Spacecraft fell for 1000 s.
+Camera pointing towards planet 1.
+Performed automatic orientation:
+Time: 87400 s
+Position: (4.97274e+06, 5.09319e+06, 0) m
+Velocity: (-5538.86, 5408.23, 0) m/s
+[4671.02630112 6173.27314709    0.        ] [-116.77565753 -154.33182868   -0.        ]
+launched lander after 444901 steps with velocity [-116.77565753 -154.33182868   -0.        ] m/s
+deployed parachute with area: 70.4675658465675 at time 99468.15287933449 s
+performed boost F_L = 560.5638637114884 at time 101033.47287851447 s
+lander has landed at time 101066.77287849702 with radial velocity -2.975066603655172 m/s
+[ 693684.26113874 6581609.21576345       0.        ] [-620.46135336   62.40344562    0.        ] 101066.77287849702
+deviated by 1068.8082726285434 m from landing site
+Landing module launched at time 97627.8 s with delta-v (-116.776, -154.332, -0) m/s.
+landed
+Performed automatic orientation:
+Time: 201178 s
+Position: (-634804, -6.58747e+06, 0) m
+Velocity: (620.718, -59.8157, 0) m/s
+deviated by 4742.417319552629 m from landing site
+201177.8128826298 [ -634804.14064693 -6587470.76148938        0.        ] [620.71766858 -59.81569565   0.        ]
+XML file landing_video.xml was saved in XMLs/.
+It can be viewed in MCAst.
+Video with 1000 frames saved to landing_video.xml.

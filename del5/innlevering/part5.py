@@ -40,7 +40,7 @@ system = SolarSystem(seed)
 mission = SpaceMission(seed)
 shortcut = SpaceMissionShortcuts(mission, [78257])
 
-file_path = "C:/Users/victo/Documents/GitHub/AST2000Victor/"
+file_path = "C:..."
 
 
 
@@ -408,10 +408,10 @@ class Rocket:
         Runs the rocket and calculates all the end values after the rocket launch
 
         Returns:
-            rocket_positions (array): The positions of the rocket over time (m).
-            rocket_velocity (array): The velocities of the rocket over time (m/s).
-            total_fuel_consumed (float): Total fuel consumed (kg).
-            reached_escape_vel (float or None): Time when escape velocity was reached (s), if achieved.
+        rocket_positions (array): The positions of the rocket over time (m).
+        rocket_velocity (array): The velocities of the rocket over time (m/s).
+        total_fuel_consumed (float): Total fuel consumed (kg).
+        reached_escape_vel (float or None): Time when escape velocity was reached (s), if achieved.
         
         """
         time_list = np.arange(0, self.rocket_duration, self.dt)
@@ -706,7 +706,6 @@ class RocketSystem:
 
         print(v_tp, "v_tp")
         print(f"v_ta_calc: {v_ta_calc}, v_ta_actual: {v_ta}")
-        
         # first burn (the same as v_tp - v_p, but just to make it clear)
         dv_1 = v_circ_1 - v_p # boost into circular orbit
         dv_1 += v_tp - v_circ_1 # boost into transfer orbit
@@ -1133,7 +1132,7 @@ class RocketSystem:
             au_to_km = constants.AU / 1e3  
             year_to_days = 365.25        
 
-            # should have used another function making a table with a dictonary. 
+            # should have used another function making a table with a dictonary, this was horrible to write out
             a_diff = abs(a1 - a0)
             a_mean = (a1 + a0) / 2
             e_diff = abs(e1 - e0)
@@ -1147,27 +1146,16 @@ class RocketSystem:
             periapsis_diff = abs(periapsis1 - periapsis0)
             periapsis_mean = (periapsis1 + periapsis0) / 2
 
-            a0_km = a0 * au_to_km
-            a1_km = a1 * au_to_km
-            b0_km = b0 * au_to_km
-            b1_km = b1 * au_to_km
-            apoapsis0_km = apoapsis0 * au_to_km
-            apoapsis1_km = apoapsis1 * au_to_km
-            periapsis0_km = periapsis0 * au_to_km
-            periapsis1_km = periapsis1 * au_to_km
-            T0_days = T0 * year_to_days
-            T1_days = T1 * year_to_days
-
-            a_diff_km = abs(a1_km - a0_km)
-            a_mean_km = (a1_km + a0_km) / 2
-            b_diff_km = abs(b1_km - b0_km)
-            b_mean_km = (b1_km + b0_km) / 2
-            apoapsis_diff_km = abs(apoapsis1_km - apoapsis0_km)
-            apoapsis_mean_km = (apoapsis1_km + apoapsis0_km) / 2
-            periapsis_diff_km = abs(periapsis1_km - periapsis0_km)
-            periapsis_mean_km = (periapsis1_km + periapsis0_km) / 2
-            T_diff_days = abs(T1_days - T0_days)
-            T_mean_days = (T1_days + T0_days) / 2
+            a_diff_km = a_diff * au_to_km
+            a_mean_km = a_mean * au_to_km
+            b_diff_km = b_diff * au_to_km
+            b_mean_km = b_mean * au_to_km
+            apoapsis_diff_km = apoapsis_diff * au_to_km
+            apoapsis_mean_km = apoapsis_mean * au_to_km
+            periapsis_diff_km = periapsis_diff * au_to_km
+            periapsis_mean_km = periapsis_mean * au_to_km
+            T_diff_days = T_diff * year_to_days
+            T_mean_days = T_mean * year_to_days
 
             print(f"Comparison of orbit after {comparison_time} years")
             print(f"Semi-major-axis start: {a0} AU, end: {a1} AU, difference: {a_diff} AU, mean: {a_mean} AU")

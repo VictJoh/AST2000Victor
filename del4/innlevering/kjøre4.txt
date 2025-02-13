@@ -1,0 +1,22 @@
+
+sample0200 centered at around 20 deg
+Measured velocities are as expected
+Rocket was moved down by 69970.5 m to stand on planet surface.
+New launch parameters set.
+Launch completed, reached escape velocity in 307.846 s.
+Your spacecraft position was satisfyingly calculated. Well done!
+*** Achievement unlocked: No free launch! ***
+Picture written to del4/pictures/find_phi_part4.jpeg.
+vel =  [ 0.62227201 -0.82673316]
+Pointing angle after launch correctly calculated. Well done!
+Velocity incorrect.
+Continuing other tests...
+Position after launch correctly calculated. Well done!
+Traceback (most recent call last):
+  File "c:", line 303, in <module>
+    main()
+  File "", line 301, in main
+    mission.verify_manual_orientation(position_after_launch = position_after_launch, velocity_after_launch = velocity_after_launch, angle_after_launch = phi)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "build/bdist.linux-x86_64/egg/ast2000tools/space_mission.py", line 858, in verify_manual_orientation
+RuntimeError: Manual orientation verification failed.

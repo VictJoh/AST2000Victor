@@ -168,10 +168,9 @@ def test_spacecraft_vel():
     vy = 1000  
     v_rocket = (vx, vy)
 
-    # 2. Get star direction angles (in radians)
     phi1, phi2 = mission.star_direction_angles
 
-    # assume no velocity of star
+    # no velocity of star
     vstar1 = 0 
     vstar2 = 0
 
@@ -184,8 +183,8 @@ def test_spacecraft_vel():
     v_radial2 = vx * np.cos(phi2) + vy * np.sin(phi2)
 
     # calculate observed dopplershift as vel of stars are 0
-    v_measured1 = - v_radial1
-    v_measured2 = - v_radial2
+    v_measured1 = -v_radial1
+    v_measured2 = -v_radial2
 
     d_lambda1 = (v_measured1 / c) * lambda0  # [m]
     d_lambda2 = (v_measured2 / c) * lambda0  # [m]
@@ -216,16 +215,15 @@ def trilaterate(distances, positions):
     A = np.zeros((len(distances) -1, 2))
     b = np.zeros(len(distances)-1)
 
-    for i in range(len(distances)-1):
-        x, y = positions[i]
-        d = distances[i]
-        k = x**2 + y**2
+    for i in range(1, len(distances)-1):
+        x_i, y_i = positions[i]
+        d_i = distances[i]
 
-        A[i, 0] = 2 * (x - x_sun)
-        A[i, 1] = 2 * (y - y_sun)
+        A[i - 1, 0] = x_i - x_sun
+        A[i - 1, 1] = y_i - y_sun
 
-        b[i] = -d**2 + k 
-        position = np.linalg.lstsq(A, b, rcond=None)[0]
+        b[i - 1] = 0.5 * (d_sun**2 - d_i**2 + (x_i**2 - x_sun**2) + (y_i**2 - y_sun**2))
+    position = np.linalg.lstsq(A, b, rcond=None)[0] # the first element is the solution
     return position
 
 ### TO BE USED FOR TRILATERATE FROM PART 6 SO I DO NOT HAVE TO ADD MUCH CODE UNUSED

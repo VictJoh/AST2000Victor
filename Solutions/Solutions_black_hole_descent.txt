@@ -1,0 +1,6 @@
+Solutons to 2C.5
+4. The energy per mass of the spaceship is 0.907837.
+7. Distance from black hole (seen from the spacecraft), between two first signals received:AU: 0.964271, SR: 8.69753|
+7. Distance from black hole (seen from the spacecraft), between two last signals received:AU: 0.223876, SR: 2.01932|
+7. Distance from black hole (seen from the planet), between two first signals received:AU: 0.959235, SR: 8.6521|
+7. Distance from black hole (seen from the planet), between two last signals received:AU: 0.245981, SR: 2.2187|

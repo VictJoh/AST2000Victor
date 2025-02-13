@@ -46,23 +46,23 @@ shortcut = SpaceMissionShortcuts(mission, [78257, 21784])
 
 def calc_orbit(position, velocity, origin = None, origin_vel = None, mass = None, calc_all = False):
     """
-    Calculate orbital parameters of the rocket.
+    Calculate orbital parameters of the rocket. Slightly modified from previous script
 
     Parameters:
-    - position (array): Position of rocket [AU]
-    - velocity (array): Velocity of rocket [AU/yr]
-    - origin (array): Origin position [AU]
-    - origin_vel (array): Origin velocity [AU/yr]
-    - mass (float): Mass of central body [Solar masses]
-    - calc_all (bool): Whether to calculate all
+    position (array): Position of rocket [AU]
+    velocity (array): Velocity of rocket [AU/yr]
+    origin (array): Origin position [AU]
+    origin_vel (array): Origin velocity [AU/yr]
+    mass (float): Mass of central body [Solar masses]
+    calc_all (bool): Whether to calculate all
 
     Returns:
-    - a (float): Semi-major axis [AU]
-    - e (float): Eccentricity
-    - b (float): Semi-minor axis [AU]
-    - T (float): Orbital period [yr]
-    - apoapsis (float): Apoapsis distance [AU]
-    - periapsis (float): Periapsis distance [AU]
+    a (float): Semi-major axis [AU]
+    e (float): Eccentricity
+    b (float): Semi-minor axis [AU]
+    T (float): Orbital period [yr]
+    apoapsis (float): Apoapsis distance [AU]
+    periapsis (float): Periapsis distance [AU]
     """
 
     if origin is None:
@@ -97,7 +97,9 @@ def calc_orbit(position, velocity, origin = None, origin_vel = None, mass = None
         return a, e, b, T, apoapsis, periapsis
     else:
         return a, e
-
+"""
+The following is just to do what we have done previously to make the script run faster.
+"""
 def initiate_launch():
     mission.set_launch_parameters(thrust = 1950414.2360053714, mass_loss_rate = 313.3328015733722, initial_fuel_mass = 100000, estimated_launch_duration = 1200, launch_position = [2.79291596, 0.50094891], time_of_launch=6.23095)
     mission.launch_rocket(time_step = 0.001)
@@ -137,7 +139,20 @@ def place_in_orbit():
     time_after_launch = 11.9264
     shortcut.place_spacecraft_in_stable_orbit(time = time_after_launch, orbital_height = 5e5, orbital_angle = 0, planet_idx = 1) # even though my orbit was circular as shown in part 5 it wasn"t close enough :(
 
+"""
+Here the code actually begins
+"""
+
 def descend():
+    """
+    Begins the landing sequence by starting to fall towards the planet. This is to check that we are in orbit.
+    Much is commented out as this things I used to generate plots etc, but did not want running every time.
+
+    Returns:
+    t0 (float): time at the end of the descent [s]
+    pos0 (array): Position of the spacecraft (x,y,z) [m]
+    v0 (array) : Velocity of the spacecraft (vx,vy,vz) [m/s]
+    """
     global landing_sequence 
     landing_sequence = mission.begin_landing_sequence()
     print("Landing Begun")
@@ -187,6 +202,15 @@ def descend():
     return t0, pos0, v0
 
 def cartesian_to_spherical(coords):
+    """
+    Convert cartesian coordinates to spherical coordinates
+
+    Parameters:
+    coords (array): Cartesian coordiantes (x,y,z)
+
+    Returns:
+    (array): Spherical coordinates (r,theta,phi)
+    """
     x,y,z = coords
     r = np.sqrt(x**2 + y**2 + z**2)
     theta = np.arccos(z / r) if r != 0 else 0
@@ -194,6 +218,15 @@ def cartesian_to_spherical(coords):
     return np.array([r, theta, phi])
 
 def spherical_to_cartesian(coords):
+    """
+    Convert cartesian coordinates to spherical coordinates
+
+    Parameters:
+    coords (array): Spherical coordinates (r,theta,phi)
+
+    Returns:
+    (array): Cartesian coordiantes (x,y,z)
+    """
     r, theta, phi = coords
     x = r * np.sin(theta) * np.cos(phi)
     y = r * np.sin(theta) * np.sin(phi)
@@ -201,6 +234,17 @@ def spherical_to_cartesian(coords):
     return np.array([x, y, z])
 
 def calc_coords(coords0, t0, t1):
+    """
+    Rotate coordinates according to planet's rotation.
+
+    Parameters:
+    coords0 (array): Initial coordinates (x,y,z)
+    t0 (float): Initital time [s]
+    t1 (float): Final time [s]
+
+    Returns:
+    new_coords_cartesian (array): Rotated coordinates (x,y,z)
+    """
     time_elapsed = t1 - t0 
 
     coords0_spherical = cartesian_to_spherical(coords0)
@@ -216,6 +260,20 @@ def calc_coords(coords0, t0, t1):
     return new_coords_cartesian
 
 def scout(t0, pos0, v0, num_pictures, take_pictures = False):
+    """
+    Scout for potential landing sites taking pictures and recording postitions.
+
+    Parameters:
+    t0 (float): Initial time after descent
+    pos0 (array): Initial position at t0 (x,y,z)
+    v0 (array): Initial velocity [m/s]
+    num_pictures (int): Number of pictures to take
+    take_pictures (bool): Whether to take pictures
+
+    Returns:
+    t_list (array): Times pictures are taken
+    potential_sites_cartesian (array): Potential landing sites (x,y,z)
+    """
     global landing_sequence
     a, e, b, T, apoapsis, periapsis = calc_orbit(position=pos0, velocity=v0, origin = None, origin_vel=None, mass = system.masses[1], calc_all=True) # origin is now planet 1
     dt_pictures = T / num_pictures
@@ -237,6 +295,15 @@ def scout(t0, pos0, v0, num_pictures, take_pictures = False):
     return t_list, potential_sites_cartesian
 
 def calc_density(h):
+    """
+    Calculates the atmospheric density at a given height
+
+    Parameters:
+    h (float): height
+
+    Returns:
+    rho (float): density
+    """
     mu = 30.0 # CO2 and CH4 [u]
 
     M = system.masses[1] * constants.m_sun
@@ -260,6 +327,7 @@ def calc_density(h):
 
     h_a = T0 / (2*b) # adiabatic end
     
+    # checks if inside or outside adiabatic
     if h < h_a:
         rho = rho0 * (1 - (b/T0) * h)**a
     else:
@@ -267,108 +335,144 @@ def calc_density(h):
     return rho
 
 def calc_parachute_area(C_d, m, g, rho, v_t):
+    """
+    Calculate the required parachute area for safe landing
+
+    Parameters:
+    C_d (float): Drag coefficient
+    m (float): Mass of the lander [kg]
+    g (float): Gravitational acceleration [m/s^2]
+    rho (float): Density [kg/m^3]
+    v_t (float): Terminal velocity [m/s]
+
+    Returns:
+    area (float): Parachute area [m^2]
+    """
     area = (2*m*g) / (C_d * rho*(v_t**2))
     return area
 
 def landing(landing_pos0, picture_time, simulation_time, dt = 1e-2):
+    """
+    Simulates the landing sequence of the lander
+
+    Parameters:
+    landing_pos0 (array): Initial landing position (x,y,z) [m]
+    picture_time (float): Time when the landing site was recorded [s]
+    simulation_time (float): Total simulation time (maximum) [s]
+    dt (float): Timestep [s]
+
+    Returns:
+    positions (array): Positions ((x,y,z),N) [m]
+    velocities (array): Velocities ((vx,vy,vz),N) [m/s]
+    times (array): Times [s]
+    accelerations (array): Accelerations  [m/s^2]
+    heights (array): Heights [m]
+    t_lander (float): Time when lander was launched [s]
+    end_landing_site_pos (array): Final landing site position [m]
+    """
     global landing_sequence
     global t_launch_lander
     global F_L
     global delta_v
+    global t_parachute
 
-    N = int(simulation_time // dt)
-
-    G = constants.G
-    C_d = 1
+    N = int(simulation_time // dt) # number of time steps (max)
+ 
+    G = constants.G # gravitational constant
+    C_d = 1 # drag coefficient
     v_safe = 3 # m/s
 
     M = system.masses[1] * constants.m_sun # [kg]  
     R = system.radii[1] * 1e3  # [m]
-    rho0 = system.atmospheric_densities[1]
-    Omega = 2 * np.pi / system.rotational_periods[1] / (24 * 3600) # [s^-1]
+    rho0 = system.atmospheric_densities[1] # surface density
+    Omega = 2 * np.pi / system.rotational_periods[1] / (24 * 3600) # angular velocity [s^-1]
 
     t_launch_lander = 4449 # [s] tested to hit location
     h_parachute = 10000 # [m]
 
     t0, pos0, vel0 = landing_sequence.orient()
-    m = mission.spacecraft_mass
-    lander_area = mission.spacecraft_area
-
+    print
+    m = mission.spacecraft_mass # assume no fuel in spacecraft [kg]
+    lander_area = mission.spacecraft_area # [m^2]
     
-    pos = np.array(pos0)
-    v = np.array(vel0)
+    pos = np.array(pos0).copy()
+    v = np.array(vel0).copy()
     t = t0.copy()
+    # print(f"start time: {t0}")
 
+    # initialize empty arrays
     times = []
     positions = []
     velocities = []
     heights = []
     accelerations = []
 
-
-    F_L = np.zeros(3)
+    F_L = np.zeros(3) 
     A = lander_area
+
+    # Booleans to determine if things have been done (should be intuitive)
     parachute_deployed = False
     parachute_broken = False
     lander_launched = False
-    landing_thruster_activated = 0
+    landing_thruster_activated = False
     for i in range(N):
-        r = np.linalg.norm(pos)
-        h = r - R
-        r_dir = pos / np.linalg.norm(pos)
-        v_r = np.dot(v, r_dir)
+        r = np.linalg.norm(pos) # abs value
+        h = r - R  # height
+        r_dir = pos / r # direction of r
+        v_r = np.dot(v, r_dir) # radial velocity
 
-        if h <= 0:
+        if h <= 0: # checks if we have landed/crashed
             if np.abs(v_r) >= v_safe:
                 print(f"lander has crashed at time {t} s with radial velocity {v_r} m /s")
             else:
                 print(f"lander has landed at time {t} with radial velocity {v_r} m/s")
             break
 
-        if not parachute_deployed and h <= h_parachute:
-            g = np.linalg.norm(F_g) / m
+        if not parachute_deployed and h <= h_parachute and lander_launched: # checks to deploy parachute
+            g = np.linalg.norm(F_g) / m 
             v_t = 5 # something that worked
             parachute_area = calc_parachute_area(C_d, m, g, rho0, v_t)
-            print(f"deployed parachute with area: {parachute_area}")
+            print(f"deployed parachute with area: {parachute_area} at time {t} s")
             t_parachute = t
             parachute_deployed = True
-            A += parachute_area
+            A += parachute_area # add parachute area to the total area
 
-
-        rho = calc_density(h)
-        w = np.array([-Omega * pos[1], Omega * pos[0], 0.0])
-        v_drag = v - w
+        rho = calc_density(h) 
+        w = np.array([-Omega * pos[1], Omega * pos[0], 0.0]) # velocity of atmosphere/wind
+        v_drag = v - w 
 
         v_drag_dir = v_drag / np.linalg.norm(v_drag)
-        F_d = 0.5 * rho * C_d * A * np.linalg.norm(v_drag)**2 * (-v_drag_dir)
+        F_d = 0.5 * rho * C_d * A * np.linalg.norm(v_drag)**2 * (-v_drag_dir) # Drag force
 
         # print(F_d)
-        F_g = (G * M * m) / r**2 * (-pos / r) 
+        F_g = (G * M * m) / r**2 * (-r_dir) # Gravitational force
 
-        if lander_launched and np.linalg.norm(F_d) > 250000 and parachute_deployed and not parachute_broken:
+        if lander_launched and np.linalg.norm(F_d) > 250000 and parachute_deployed and not parachute_broken: # checks if parachute breaks
             parachute_broken = True
             A = lander_area
             print(f"parachute broke after being deployed for {t - t_parachute} s at a F_d = {np.linalg.norm(F_d)} N ")
         
-        if not landing_thruster_activated and h <= 100:
-            v_t = np.sqrt((2 * np.linalg.norm(F_g)) / (rho0 * A * C_d))
+        if not landing_thruster_activated and h <= 100: # checks to activate landing thrusters
+            v_t = np.sqrt((2 * np.linalg.norm(F_g)) / (rho0 * A * C_d)) # calculate the terminal velocity
             F_L_dir = r_dir
-            F_L = 0.5 * rho0 * C_d * A * (v_t**2 - v_safe**2) * F_L_dir
+            F_L = 0.5 * rho0 * C_d * A * (v_t**2 - v_safe**2) * F_L_dir # calculate nescessary boost
             landing_thruster_activated = True
             print(f"performed boost F_L = {np.linalg.norm(F_L)} at time {t} s")
             
-        F_tot = F_g + F_d + F_L
+        F_tot = F_g + F_d + F_L 
 
         a = F_tot / m
 
+        # Simple forward euler (change if it does not work, but energy conservation is not that important as running quickly)
         v += a*dt
         pos += v*dt
         
         P_d = np.linalg.norm(F_d / A)
-        if P_d > 1e7 and lander_launched:
+        if P_d > 1e7 and lander_launched: # checks if the pressure is too high
             print(f"lander has burnt up after {t - t0} s at height {h} m")
             break
 
+        # launch lander
         if not lander_launched and t - t0 > t_launch_lander:
             # boost against velocity direction to slow down
 
@@ -382,6 +486,7 @@ def landing(landing_pos0, picture_time, simulation_time, dt = 1e-2):
             v += delta_v
             print(f"launched lander after {i} steps with velocity {delta_v} m/s")
 
+        # used for testing
         # if i % 10000 == 0:
         #     print(f"Step {i}: pos = {pos}, vel = {v}, acc = {a}, rho = {rho}, F_g = {F_g}, F_d = {F_d}")
         t += dt
@@ -396,13 +501,14 @@ def landing(landing_pos0, picture_time, simulation_time, dt = 1e-2):
         # if np.linalg.norm(a) >= 30:
         #     print(f"acceleration bigger than 30 at {h} m")
     
-
+    
+    # fun fact I had an error when running this code and it was so absurd because everything seemed correct and then suddenly the plots were wrong
+    # turns out I needed to use .copy()... Just felt the need to share
     accelerations = np.array(accelerations.copy())
     positions = np.array(positions.copy())
     velocities = np.array(velocities.copy())
     times = np.array(times.copy())
     heights = np.array(heights.copy())
-
 
     end_time = times[-1]
     
@@ -412,7 +518,6 @@ def landing(landing_pos0, picture_time, simulation_time, dt = 1e-2):
     print(end_pos, end_vel, end_t)
 
     print(f"deviated by {np.linalg.norm(end_landing_site_pos - end_pos)} m from landing site")
-
     return positions, velocities, times, accelerations, heights, t_lander, end_landing_site_pos
 
 def plot_positions(positions, end_landing_site_pos, times, actual = False):
@@ -449,6 +554,7 @@ def plot_positions(positions, end_landing_site_pos, times, actual = False):
         plt.savefig("Del7/Lander_trajectory.png")       
 
 def plot_velocities(velocities, positions, times):
+    global t_launch_lander
     velocities = np.array(velocities)
     positions = np.array(positions)
 
@@ -457,9 +563,11 @@ def plot_velocities(velocities, positions, times):
 
     # Radial velocity
     plt.figure()
+    plt.axvline(x=t_parachute, color='green', linestyle='--', label="Parachute Deployed", alpha = 0.5)
     plt.plot(times, radial_velocities, label="Radial Velocity", color="blue")
     plt.title("Radial Velocity")
     plt.xlabel("Time [s]")
+    plt.legend()
     plt.ylabel("Radial Velocity [m/s]")
     plt.ylabel("Radial Velocity [m/s]")
     plt.savefig("Del7/radial_velocity.png")
@@ -467,8 +575,10 @@ def plot_velocities(velocities, positions, times):
 
     # Tangential velocity
     plt.figure()
-    plt.plot(times, tangential_velocities, label="Tangential Velocity", color="green")
+    plt.axvline(x=t_parachute, color='green', linestyle='--', label="Parachute Deployed", alpha = 0.5)
+    plt.plot(times, tangential_velocities, label="Tangential Velocity", color="red")
     plt.title("Tangential Velocity")
+    plt.legend()
     plt.xlabel("Time [s]")
     plt.ylabel("Tangential Velocity [m/s]")
     plt.savefig("Del7/tangential_velocity.png")
@@ -477,7 +587,7 @@ def plot_acceleration(accelerations, times):
     accelerations = np.linalg.norm(accelerations, axis=1)
     plt.figure()
     plt.plot(times, accelerations, label="Acceleration over time", color="red")
-
+    plt.axvline(x=t_parachute, color='blue', linestyle='--', label="Parachute Deployed", alpha = 0.5)
     plt.title("Acceleration over time")
     plt.xlabel("Time [s]")
     plt.ylabel("Acceleration [m/s^2]")
@@ -489,7 +599,7 @@ def plot_height(heights,times, actual = False):
     plt.figure()
     plt.plot(times, heights, label="Height over time", color="red")
 
-    
+    plt.axvline(x=t_parachute, color='green', linestyle='--', label="Parachute Deployed", alpha = 0.5)
     plt.xlabel("Time [s]")
     plt.ylabel("Height [km]")
     plt.legend()
@@ -501,13 +611,12 @@ def plot_height(heights,times, actual = False):
         plt.savefig("Del7/height_over_time.png")
 
 def plot_landing(heights,times):
-    idx_h = np.argmin(np.abs(heights - 200))
-    heights = heights[idx_h:]
+    idx_h = np.argmin(np.abs(1 - heights))
+    heights = heights[idx_h:] * 1000 # I have no clue why heights acts as a global variable here
     times = times[idx_h:]
-
+    
     plt.figure()
     plt.plot(times, heights, label="Height over time", color="red")
-
     plt.title("Landing")
     plt.xlabel("Time [s]")
     plt.ylabel("Height [m]")
@@ -515,6 +624,9 @@ def plot_landing(heights,times):
     plt.savefig("Del7/landing_over_time.png")
 
 def landing_ast(landing_pos0, picture_time, simulation_time, dt = 1.0, video = True):
+    """
+    Uses our information to land using the AST2000-package
+    """
     global landing_sequence
     global t_launch_lander
     global F_L

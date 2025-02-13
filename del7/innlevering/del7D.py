@@ -50,8 +50,11 @@ sigma = constants.sigma
 star_radius = system.star_radius * 1000 # [m]
 star_temp = system.star_temperature # [K]
 star_L = 4 * np.pi * star_radius**2 * sigma * star_temp**4 / constants.L_sun # [L_sun]
+# star_L = 4.55e27 / constants.L_sun
 
-print(star_L)
+print(star_L* constants.L_sun)
+print(f"R: {star_radius} m, T: {star_temp} K")
+
 stars = StarPopulation(seed = seed)
 T = stars.temperatures # [K]
 L = stars.luminosities # [L_sun]
@@ -83,11 +86,8 @@ plt.savefig('Del7/HR_diagram.png')
 
 
 def core_temp():
-    X = 0.7
-    Y = 0.2
-    Z = 0.1
-
-    mu = 4 / (6*X + Y + 2)
+    m_H = constants.m_p
+    mu = 2 # assume only hydrogengas
     T0 = system.star_temperature # K
     G = constants.G 
     R = system.star_radius * 1e3 # m
@@ -95,7 +95,7 @@ def core_temp():
     star_mass = system.star_mass * constants.m_sun
     m_H = constants.m_p
     k = constants.k_B
-    rho0 = system.star_mass / V
+    rho0 = star_mass / V
 
     T_c = T0 + (G * (2 * np.pi / 3) * rho0 * (mu * m_H) / k) * R**2
     

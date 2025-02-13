@@ -1,0 +1,89 @@
+Rocket was moved down by 69970.5 m to stand on planet surface.
+New launch parameters set.
+Launch completed, reached escape velocity in 307.846 s.
+Your spacecraft position was satisfyingly calculated. Well done!
+*** Achievement unlocked: No free launch! ***
+Pointing angle after launch correctly calculated. Well done!
+Velocity after launch correctly calculated. Well done!
+Position after launch correctly calculated. Well done!
+Your manually inferred orientation was satisfyingly calculated. Well done!
+*** Achievement unlocked: Well-oriented! ***
+Recorded interplanetary travel destination:
+Time: 6.23096 yr
+Position: (2.79291, 0.501007) AU
+Velocity: (2.15889, 6.07076) AU/yr
+Note: Existing recorded destination was cleared.
+Recorded interplanetary travel destination:
+Time: 11.9264 yr
+Position: (-0.409892, 3.85457) AU
+Velocity: (-4.9047, 1.129) AU/yr
+Note: Ongoing interplanetary travel was terminated.
+Landing Begun
+Spacecraft fell for 1000 s.
+Camera pointing towards planet 1.
+Video recording started.
+XML file landing_video.xml was saved in XMLs/.
+It can be viewed in MCAst.
+Performed automatic orientation:
+Time: 87400 s
+Position: (4.97274e+06, 5.09319e+06, 0) m
+Velocity: (-5538.86, 5408.23, 0) m/s
+1.6049480229527535
+XML file scout_pic0.xml was saved in XMLs/.
+It can be viewed in MCAst.
+XML file scout_pic1.xml was saved in XMLs/.
+It can be viewed in MCAst.
+XML file scout_pic2.xml was saved in XMLs/.
+It can be viewed in MCAst.
+XML file scout_pic3.xml was saved in XMLs/.
+It can be viewed in MCAst.
+XML file scout_pic4.xml was saved in XMLs/.
+It can be viewed in MCAst.
+XML file scout_pic5.xml was saved in XMLs/.
+It can be viewed in MCAst.
+XML file scout_pic6.xml was saved in XMLs/.
+It can be viewed in MCAst.
+XML file scout_pic7.xml was saved in XMLs/.
+It can be viewed in MCAst.
+XML file scout_pic8.xml was saved in XMLs/.
+It can be viewed in MCAst.
+XML file scout_pic9.xml was saved in XMLs/.
+It can be viewed in MCAst.
+XML file scout_pic10.xml was saved in XMLs/.
+It can be viewed in MCAst.
+XML file scout_pic11.xml was saved in XMLs/.
+It can be viewed in MCAst.
+XML file scout_pic12.xml was saved in XMLs/.
+It can be viewed in MCAst.
+XML file scout_pic13.xml was saved in XMLs/.
+It can be viewed in MCAst.
+XML file scout_pic14.xml was saved in XMLs/.
+It can be viewed in MCAst.
+XML file scout_pic15.xml was saved in XMLs/.
+It can be viewed in MCAst.
+XML file scout_pic16.xml was saved in XMLs/.
+It can be viewed in MCAst.
+XML file scout_pic17.xml was saved in XMLs/.
+It can be viewed in MCAst.
+XML file scout_pic18.xml was saved in XMLs/.
+It can be viewed in MCAst.
+XML file scout_pic19.xml was saved in XMLs/.
+It can be viewed in MCAst.
+Cartesian coordinates of landing site[ 1196508.74180903 -7017096.39971455        0.        ], at time: 3953.240393378361
+[7.11837587e+06 1.57079633e+00 4.88127804e+00]
+30.0
+mu =  30.0
+m_H =  1.67262192369e-27
+k =  1.380649e-23
+M =  6.391160435564041e+24
+R =  6618064.52432759
+g =  9.739203693805745
+gamma =  1.4
+T0 =  291.95
+rho0 =  0.9920991268707027
+a =  2.5000000000000004
+b =  0.010113259748055619
+c =  0.00024248267935053725
+rho_a =  0.17538000505488166
+h_a =  14.434020645822455
+T0/2 =  145.975

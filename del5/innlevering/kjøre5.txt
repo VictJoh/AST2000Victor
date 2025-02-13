@@ -1,0 +1,14 @@
+The simulated mean speed is within the wanted margin
+Traceback (most recent call last):
+  File "c:\\part5.py", line 1254, in <module>
+    main()
+  File "c:\part5.py", line 1214, in main
+    rocket = Rocket(seed, F, consumption, fuel_mass, number_of_engines, rocket_duration, dt_rocket, planet_idx, t_launch, angle_launch)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\\part5.py", line 342, in __init__
+    pos_data = np.load("planet_positions.npz")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\anaconda3\Lib\site-packages\numpy\lib\npyio.py", line 405, in load
+    fid = stack.enter_context(open(os_fspath(file), "rb"))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'planet_positions.npz'
