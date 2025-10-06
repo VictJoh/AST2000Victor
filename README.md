@@ -2,7 +2,7 @@
 
 > **Disclosure:** This README was written with the help of ChatGPT. **No generative AI was used to create the code, analyses, or figures** in this repository.
 
-A compact overview of my AST2000 course project work (UiO): orbital mechanics, navigation (stereographic attitude, Doppler/radial‑velocity, trilateration), transfer design, and simple propulsion modeling. The goal of this README is to present the repository clearly for **recruiters and hiring managers**.
+A compact overview of my AST2000 course project work (UiO): orbital mechanics, navigation (stereographic attitude, Doppler/radial‑velocity, trilateration), transfer design, and simple propulsion modeling. The course is designed for two students; I completed it solo.
 
 ---
 
