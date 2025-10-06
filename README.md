@@ -18,7 +18,7 @@ A compact overview of my AST2000 course project work (UiO): orbital mechanics, n
 
 ```bash
 python -m venv .venv && source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -U numpy scipy matplotlib numba
+pip install -U numpy scipy matplotlib numba ast2000tools
 # optional: pandas jupyter tqdm pillow astropy
 ```
 
